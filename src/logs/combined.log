@@ -1,0 +1,126 @@
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T09:52:43.468Z"}
+{"level":"info","message":"POST /api/store-info","timestamp":"2026-07-30T09:52:58.524Z"}
+{"level":"info","message":"POST /api/search-products","timestamp":"2026-07-30T09:54:43.505Z"}
+{"0":{"extensions":{"code":"undefinedField","fieldName":"availableForSale","typeName":"Product"},"locations":[{"column":15,"line":10}],"message":"Field 'availableForSale' doesn't exist on type 'Product'","path":["query SearchProducts","products","edges","node","availableForSale"]},"level":"error","message":"Shopify GraphQL Errors:","timestamp":"2026-07-30T09:54:43.984Z"}
+{"error":"Shopify API Error: Field 'availableForSale' doesn't exist on type 'Product'","level":"error","message":"Shopify Request Failed","stack":"Error: Shopify API Error: Field 'availableForSale' doesn't exist on type 'Product'\n    at queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:18:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:36:18)","timestamp":"2026-07-30T09:54:43.987Z"}
+{"level":"error","message":"Shopify API Error: Field 'availableForSale' doesn't exist on type 'Product' - /api/search-products - POST - ::1","stack":"Error: Shopify API Error: Field 'availableForSale' doesn't exist on type 'Product'\n    at queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:18:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:36:18)","timestamp":"2026-07-30T09:54:43.988Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T09:54:53.850Z"}
+{"level":"info","message":"POST /api/search-products","timestamp":"2026-07-30T09:55:03.463Z"}
+{"level":"info","message":"POST /api/create-order","timestamp":"2026-07-30T09:55:15.980Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:14:04.889Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:14:13.332Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:22:21.521Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:30:20.337Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:32:39.188Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:55:08.331Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:55:14.865Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T10:55:33.952Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:00:12.217Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:00:33.186Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:01:02.286Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:02:54.008Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:02:55.739Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:04:23.050Z"}
+{"level":"error","message":"Failed to create customer: Phone is invalid - /api/agent - POST - ::1","stack":"Error: Failed to create customer: Phone is invalid\n    at findOrCreateCustomer (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\orderController.js:41:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async createOrder (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\orderController.js:53:24)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:69:16)","timestamp":"2026-07-30T11:04:24.312Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:05:12.567Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:05:59.848Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:07:20.114Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:08:10.326Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:09:13.199Z"}
+{"0":{"extensions":{"argumentName":"sortKey","code":"argumentLiteralsIncompatible","typeName":"Field"},"locations":[{"column":9,"line":3}],"message":"Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.","path":["query SearchProducts","products","sortKey"]},"level":"error","message":"Shopify GraphQL Errors:","timestamp":"2026-07-30T11:09:13.744Z"}
+{"error":"Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.","level":"error","message":"Shopify Request Failed","stack":"Error: Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.\n    at queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:18:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:36:18)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:75:16)","timestamp":"2026-07-30T11:09:13.746Z"}
+{"level":"error","message":"Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'. - /api/agent - POST - ::1","stack":"Error: Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.\n    at queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:18:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:36:18)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:75:16)","timestamp":"2026-07-30T11:09:13.749Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:09:37.201Z"}
+{"0":{"extensions":{"argumentName":"sortKey","code":"argumentLiteralsIncompatible","typeName":"Field"},"locations":[{"column":9,"line":3}],"message":"Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.","path":["query SearchProducts","products","sortKey"]},"level":"error","message":"Shopify GraphQL Errors:","timestamp":"2026-07-30T11:09:37.619Z"}
+{"error":"Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.","level":"error","message":"Shopify Request Failed","stack":"Error: Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.\n    at queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:18:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:36:18)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:75:16)","timestamp":"2026-07-30T11:09:37.619Z"}
+{"level":"error","message":"Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'. - /api/agent - POST - ::1","stack":"Error: Shopify API Error: Argument 'sortKey' on Field 'products' has an invalid value (BEST_SELLING). Expected type 'ProductSortKeys'.\n    at queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:18:13)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:36:18)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:75:16)","timestamp":"2026-07-30T11:09:37.620Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:10:11.795Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:10:51.195Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:11:47.206Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:12:30.104Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:13:07.134Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:14:29.079Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:24:45.173Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:25:17.239Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:26:17.366Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:26:44.388Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:27:25.975Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T11:28:21.217Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:30:16.197Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:49:14.437Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:49:24.783Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:50:50.729Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:57:00.304Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:58:19.304Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T11:58:27.953Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T12:00:11.223Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T12:00:19.937Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T12:02:44.344Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T12:03:54.717Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T12:06:25.601Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T12:27:43.877Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T12:30:13.646Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T12:50:09.198Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T12:58:54.374Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T13:00:36.161Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-30T13:06:27.499Z"}
+{"level":"error","message":"Cannot read properties of undefined (reading 'includes') - /api/agent - POST - ::1","stack":"TypeError: Cannot read properties of undefined (reading 'includes')\n    at C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\orderController.js:56:34\n    at Array.map (<anonymous>)\n    at createOrder (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\orderController.js:55:29)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:79:16)","timestamp":"2026-07-30T13:06:28.451Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T13:07:30.593Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-30T13:07:41.582Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:27:46.468Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:27:46.764Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:28:35.188Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:28:35.976Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:28:36.019Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:28:36.178Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:28:36.224Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:28:36.359Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:28:36.422Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:01.571Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:01.624Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:02.062Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:02.109Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:02.268Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:02.309Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:02.435Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:02.491Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:02.612Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:02.655Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:02.791Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:02.841Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:02.996Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:03.043Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:03.240Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:03.285Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:03.397Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:03.443Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:03.558Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:03.604Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:03.718Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:03.792Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:03.887Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:03.971Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:04.027Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:04.083Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:04.235Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:04.284Z"}
+{"level":"info","message":"GET /","timestamp":"2026-07-30T16:29:04.426Z"}
+{"level":"info","message":"GET /favicon.ico","timestamp":"2026-07-30T16:29:04.476Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:04:46.093Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:06:49.714Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-31T13:12:06.315Z"}
+{"error":"Request failed with status code 404","level":"error","message":"Shopify Request Failed","stack":"AxiosError: Request failed with status code 404\n    at settle (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\node_modules\\axios\\dist\\node\\axios.cjs:2354:12)\n    at Unzip.handleStreamEnd (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\node_modules\\axios\\dist\\node\\axios.cjs:4407:11)\n    at Unzip.emit (node:events:508:28)\n    at endReadableNT (node:internal/streams/readable:1729:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n    at Axios.request (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\node_modules\\axios\\dist\\node\\axios.cjs:5864:41)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:15:22)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:39:18)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:75:16)","timestamp":"2026-07-31T13:12:07.542Z"}
+{"level":"error","message":"Request failed with status code 404 - /api/agent - POST - ::1","stack":"AxiosError: Request failed with status code 404\n    at settle (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\node_modules\\axios\\dist\\node\\axios.cjs:2354:12)\n    at Unzip.handleStreamEnd (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\node_modules\\axios\\dist\\node\\axios.cjs:4407:11)\n    at Unzip.emit (node:events:508:28)\n    at endReadableNT (node:internal/streams/readable:1729:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)\n    at Axios.request (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\node_modules\\axios\\dist\\node\\axios.cjs:5864:41)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async queryShopify (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\services\\shopifyService.js:15:22)\n    at async searchProducts (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\productController.js:39:18)\n    at async handleAction (C:\\Users\\BAPS\\Downloads\\shopify brige\\shopify-ai-bridge\\src\\controllers\\agentController.js:75:16)","timestamp":"2026-07-31T13:12:07.544Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:16:15.554Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-31T13:17:01.271Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-31T13:26:14.565Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-31T13:31:12.996Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-31T13:44:38.351Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-31T13:45:26.784Z"}
+{"level":"info","message":"POST /api/agent","timestamp":"2026-07-31T13:46:00.787Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:50:47.309Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:51:07.785Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:51:25.450Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:51:49.281Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:52:21.898Z"}
+{"level":"info","message":"Server is running on port 3000","timestamp":"2026-07-31T13:52:34.884Z"}

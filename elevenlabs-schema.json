@@ -1,0 +1,197 @@
+{
+  "type": "webhook",
+  "name": "Shopify_AI_Manager",
+  "description": "Use this tool to interact with the Shopify store. It handles searching products, getting product details, creating orders, checking order status, getting customer profiles, and getting store info.",
+  "api_schema": {
+    "url": "https://jukebox-wildfire-shortlist.ngrok-free.dev/api/agent",
+    "method": "POST",
+    "path_params_schema": [],
+    "query_params_schema": [],
+    "request_body_schema": {
+      "id": "body",
+      "type": "object",
+      "description": "Extract the required action, product query, customer information, and shipping address from the conversation to interact with the Shopify store.",
+      "required": true,
+      "properties": [
+        {
+          "id": "action",
+          "type": "string",
+          "description": "CRITICAL: Action to perform. MUST be one of: search_products, get_product_details, create_order, check_order_status",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "value_type": "llm_prompt",
+          "required": true,
+          "enum": null
+        },
+        {
+          "id": "query",
+          "description": "The product name or search term. Use to search or book a product.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "product_id",
+          "description": "Use with get_product_details. The exact product ID returned from search_products to get deep details.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "variant_id",
+          "description": "Use with create_order. Variant ID of the product to order.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "quantity",
+          "description": "Quantity to order. (e.g. '1')",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "order_number",
+          "description": "Order number starting with # to check status.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "customer_first_name",
+          "description": "Customer first name.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "customer_last_name",
+          "description": "Customer last name.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "customer_email",
+          "description": "Customer email address.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "customer_phone",
+          "description": "Customer phone number with country code.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "shipping_address1",
+          "description": "House number and street name.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "shipping_city",
+          "description": "City name.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "shipping_province",
+          "description": "State or Province name.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "shipping_country",
+          "description": "Shipping country.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        },
+        {
+          "id": "shipping_zip",
+          "description": "Postal or Zip code.",
+          "dynamic_variable": "",
+          "constant_value": "",
+          "required": false,
+          "type": "string",
+          "value_type": "llm_prompt",
+          "enum": null
+        }
+      ],
+      "value_type": "llm_prompt"
+    },
+    "request_headers": [
+      {
+        "type": "secret",
+        "name": "Authorization",
+        "secret_id": "1GnqwTh9zCEcyB4eN0E2"
+      },
+      {
+        "type": "value",
+        "name": "Bypass-Tunnel-Reminder",
+        "secret_id": "KcDjlUI0y0nXzmCpAQRd",
+        "value": "true"
+      }
+    ],
+    "content_type": "application/json",
+    "auth_connection": null
+  },
+  "response_timeout_secs": 20,
+  "dynamic_variables": {
+    "dynamic_variable_placeholders": {}
+  },
+  "assignments": [],
+  "interruption_mode": "allow",
+  "pre_tool_speech": "auto",
+  "tool_call_sound": null,
+  "tool_call_sound_behavior": "auto",
+  "execution_mode": "immediate",
+  "tool_error_handling_mode": "auto",
+  "response_mocks": []
+}

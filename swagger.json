@@ -1,0 +1,173 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Shopify AI Bridge",
+    "version": "1.0.0",
+    "description": "Bridge between ElevenLabs AI Agent and Shopify Admin API"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/search-products": {
+      "post": {
+        "summary": "Search for products",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/product": {
+      "post": {
+        "summary": "Get product details",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/create-order": {
+      "post": {
+        "summary": "Create an order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customer": {
+                    "type": "object",
+                    "properties": {
+                      "first_name": { "type": "string" },
+                      "last_name": { "type": "string" },
+                      "email": { "type": "string" },
+                      "phone": { "type": "string" }
+                    }
+                  },
+                  "shipping_address": {
+                    "type": "object",
+                    "properties": {
+                      "address1": { "type": "string" },
+                      "city": { "type": "string" },
+                      "province": { "type": "string" },
+                      "country": { "type": "string" },
+                      "zip": { "type": "string" }
+                    }
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "variant_id": { "type": "string" },
+                        "quantity": { "type": "integer" }
+                      }
+                    }
+                  },
+                  "payment_method": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Order created" }
+        }
+      }
+    },
+    "/order-status": {
+      "post": {
+        "summary": "Get order status",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order_number": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/customer": {
+      "post": {
+        "summary": "Get customer by phone or email",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": { "type": "string" },
+                  "email": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    },
+    "/store-info": {
+      "post": {
+        "summary": "Get store information",
+        "responses": {
+          "200": { "description": "Successful response" }
+        }
+      }
+    }
+  }
+}
