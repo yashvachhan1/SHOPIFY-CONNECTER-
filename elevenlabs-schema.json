@@ -3,7 +3,7 @@
   "name": "Shopify_AI_Manager",
   "description": "Use this tool to interact with the Shopify store. It handles searching products, getting product details, creating orders, checking order status, getting customer profiles, and getting store info.",
   "api_schema": {
-    "url": "https://jukebox-wildfire-shortlist.ngrok-free.dev/api/agent",
+    "url": "https://shopify-connecter.onrender.com/api/agent",
     "method": "POST",
     "path_params_schema": [],
     "query_params_schema": [],
@@ -171,12 +171,6 @@
         "type": "secret",
         "name": "Authorization",
         "secret_id": "1GnqwTh9zCEcyB4eN0E2"
-      },
-      {
-        "type": "value",
-        "name": "Bypass-Tunnel-Reminder",
-        "secret_id": "KcDjlUI0y0nXzmCpAQRd",
-        "value": "true"
       }
     ],
     "content_type": "application/json",
