@@ -57,7 +57,7 @@ const processChat = async (messages, res) => {
   
   async function runCompletionAndStream(currentMessages) {
     const stream = await groq.chat.completions.create({
-      model: "openai/gpt-oss-120b",
+      model: "qwen/qwen3.6-27b",
       messages: currentMessages,
       tools: tools,
       tool_choice: "auto",
@@ -72,6 +72,7 @@ const processChat = async (messages, res) => {
     
     let isToolCall = false;
     let toolCalls = [];
+    let inThinkBlock = false;
 
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta;
@@ -92,6 +93,18 @@ const processChat = async (messages, res) => {
       // Handle Standard Content Streaming
       if (!isToolCall && delta?.content) {
         let text = delta.content;
+        
+        // Filter out Qwen <think> reasoning blocks
+        if (text.includes('<think>')) inThinkBlock = true;
+        if (inThinkBlock) {
+            if (text.includes('</think>')) {
+                inThinkBlock = false;
+                text = text.split('</think>')[1] || "";
+                if (!text) continue;
+            } else {
+                continue;
+            }
+        }
         
         // Intercept language tag without sending it to user
         if (isParsingTag) {
