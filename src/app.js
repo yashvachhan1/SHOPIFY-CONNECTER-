@@ -15,6 +15,9 @@ const path = require('path');
 
 const app = express();
 
+// Trust proxy for Render/Heroku load balancers (Fixes 429 Too Many Requests)
+app.set('trust proxy', 1);
+
 // Serve static files for the test UI
 app.use(express.static(path.join(__dirname, '../public')));
 
