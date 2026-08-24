@@ -1,4 +1,4 @@
-const { apiSecret } = require('../config/env');
+const { apiSecret, smallestApiKey } = require('../config/env');
 const { sendResponse } = require('../utils/response');
 
 const authenticate = (req, res, next) => {
@@ -8,7 +8,9 @@ const authenticate = (req, res, next) => {
   }
 
   const token = authHeader.split(' ')[1];
-  if (token !== apiSecret) {
+  
+  // Allow access if the token matches either the general API secret or the Smallest AI API key
+  if (token !== apiSecret && token !== smallestApiKey) {
     return sendResponse(res, 403, 'Forbidden: Invalid token', null, 'FORBIDDEN');
   }
 

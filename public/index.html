@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bodhi Health Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #064e3b 100%);
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --accent: #10b981;
+      --accent-hover: #34d399;
+      --user-msg: rgba(16, 185, 129, 0.2);
+      --agent-msg: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      padding: 1rem; overflow: hidden;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif; font-size: 1.8rem; margin-bottom: 0.2rem;
+      background: linear-gradient(to right, #34d399, #10b981, #059669);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      text-shadow: 0px 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    .status-text { font-size: 0.85rem; color: var(--accent); margin-bottom: 0.5rem; height: 20px; font-weight: 500; }
+    
+    .container {
+      background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border); border-radius: 24px;
+      width: 100%; max-width: 700px; flex: 1; min-height: 0;
+      display: flex; flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    }
+
+    .chat-box {
+      flex: 1; padding: 1.5rem; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 1.2rem; scroll-behavior: smooth;
+    }
+
+    .message {
+      padding: 1rem 1.5rem; border-radius: 20px; max-width: 85%; line-height: 1.6; font-size: 1rem;
+      animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      white-space: pre-wrap;
+    }
+    .message.user { align-self: flex-end; background: var(--user-msg); border-bottom-right-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .message.agent { align-self: flex-start; background: var(--agent-msg); border-bottom-left-radius: 4px; border: 1px solid var(--glass-border); }
+    
+    .product-card {
+      margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.4); border-radius: 12px;
+      display: flex; gap: 15px; align-items: center; border: 1px solid rgba(255,255,255,0.05);
+      transition: transform 0.2s ease;
+    }
+    .product-card:hover { transform: translateY(-2px); background: rgba(0,0,0,0.6); }
+    .product-card img { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; }
+
+    .controls {
+      padding: 1.5rem; border-top: 1px solid var(--glass-border); display: flex; gap: 1rem;
+      background: rgba(0,0,0,0.25); border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; align-items: center;
+    }
+    input[type="text"] {
+      flex: 1; padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border);
+      border-radius: 99px; color: white; font-family: 'Inter', sans-serif; font-size: 1rem; transition: all 0.3s ease;
+    }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+    
+    button {
+      border: none; border-radius: 50%; width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-size: 1.2rem; color: white;
+    }
+    .send-btn { background: var(--agent-msg); border: 1px solid var(--glass-border); }
+    .send-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.05); }
+    .mic-btn { background: var(--accent); }
+    .mic-btn:hover { background: var(--accent-hover); transform: scale(1.1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
+    .mic-btn.recording { background: #ef4444; animation: pulseRecord 1.5s infinite; }
+
+    @keyframes pulseRecord { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); transform: scale(1); } 50% { transform: scale(1.05); } 100% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); transform: scale(1); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+  <h1>Bodhi Health Assistant</h1>
+  <div class="status-text" id="statusText">Click the microphone to start</div>
+
+  <div class="container">
+    <div class="chat-box" id="chatBox">
+      <div class="message agent" id="welcomeMsg">Hello! I am Bodhi Health Support. How can I help you today?</div>
+    </div>
+    <div class="controls">
+      <input type="text" id="chatInput" placeholder="Type your message or tap microphone..." autocomplete="off">
+      <button class="send-btn" id="sendBtn">➤</button>
+      <button class="mic-btn" id="micBtn">🎤</button>
+    </div>
+  </div>
+
+  <audio id="bodhiAudioPlayer" style="display:none"></audio>
+
+  <script>
+    const API_KEY = "sk_d8bdf2eced79793132623c8d2002b8aa";
+    let chatHistory = [];
+
+    const chatBox = document.getElementById('chatBox');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const micBtn = document.getElementById('micBtn');
+    const statusText = document.getElementById('statusText');
+    const audioPlayer = document.getElementById('bodhiAudioPlayer');
+
+    // Advanced Streaming Audio State
+    let audioQueue = [];
+    let isPlayingAudio = false;
+    let totalChunks = 0;
+    let chunksPlayed = 0;
+    let hasUnlockedAudio = false;
+    let isStreamComplete = true;
+
+    // Speech Recognition State
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isListening = false;
+    let silenceTimer = null;
+    let finalTranscript = "";
+
+    function setStatus(text) { statusText.innerText = text; }
+
+    function addMessageElement(sender) {
+      const existingTyping = document.getElementById('typingMsg');
+      if (existingTyping) existingTyping.remove();
+
+      const div = document.createElement('div');
+      div.className = `message ${sender}`;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return div;
+    }
+
+    function showTyping() {
+      const div = addMessageElement('agent');
+      div.id = 'typingMsg';
+      div.innerHTML = `<span style="opacity: 0.5">Typing...</span>`;
+    }
+
+    // New Streaming TTS Logic
+    let fetchQueue = [];
+    let isFetchingTTS = false;
+
+    function queueSentenceForTTS(sentence, lang) {
+        totalChunks++;
+        fetchQueue.push({ sentence, lang });
+        if (!isFetchingTTS) {
+            processFetchQueue();
+        }
+    }
+
+    async function processFetchQueue() {
+        isFetchingTTS = true;
+        while (fetchQueue.length > 0) {
+            const item = fetchQueue.shift();
+            try {
+                const ttsUrl = `/api/tts?text=${encodeURIComponent(item.sentence)}&lang=${item.lang}`;
+                const res = await fetch(ttsUrl, { headers: { 'Authorization': 'Bearer ' + API_KEY } });
+                
+                if (!res.ok) throw new Error("TTS Failed");
+                
+                const blob = await res.blob();
+                const audioUrl = URL.createObjectURL(blob);
+                audioQueue.push(audioUrl);
+                
+                if (!isPlayingAudio) {
+                    playNextInQueue();
+                }
+            } catch (err) {
+                console.error("TTS Error:", err);
+                chunksPlayed++;
+                checkStreamComplete();
+            }
+        }
+        isFetchingTTS = false;
+        checkStreamComplete();
+    }
+
+    function checkStreamComplete() {
+        if (chunksPlayed >= totalChunks && isStreamComplete) {
+            isPlayingAudio = false;
+            if (isListening) startListening();
+            else setStatus("Ready");
+        }
+    }
+
+    function playNextInQueue() {
+      if (audioQueue.length === 0) {
+        isPlayingAudio = false;
+        checkStreamComplete();
+        return; 
+      }
+
+      isPlayingAudio = true;
+      audioPlayer.src = audioQueue.shift();
+      audioPlayer.onplay = () => setStatus("Speaking...");
+      
+      audioPlayer.onended = () => {
+        chunksPlayed++;
+        if (audioQueue.length > 0) playNextInQueue(); 
+        else {
+            isPlayingAudio = false; 
+            checkStreamComplete();
+        }
+      };
+      
+      audioPlayer.play().catch(e => {
+          chunksPlayed++;
+          playNextInQueue();
+      });
+    }
+
+    async function sendRequest(text) {
+      if (!text.trim()) return;
+      
+      const userDiv = addMessageElement('user');
+      userDiv.innerText = text;
+      
+      chatInput.value = '';
+      chatHistory.push({ role: 'user', content: text });
+      
+      showTyping();
+      setStatus("Thinking...");
+      stopListening(false); 
+      
+      // Reset Audio Queue State
+      if (!audioPlayer.paused) audioPlayer.pause();
+      audioQueue = [];
+      fetchQueue = [];
+      isPlayingAudio = false;
+      isFetchingTTS = false;
+      totalChunks = 0;
+      chunksPlayed = 0;
+      isStreamComplete = false;
+      
+      try {
+        const payload = { messages: chatHistory };
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+           throw new Error(`Server returned ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        
+        let fullText = "";
+        let sentenceBuffer = "";
+        let ttsLanguage = "en"; // Default
+        let agentMessageDiv = null;
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          const chunkStr = decoder.decode(value, { stream: true });
+          const lines = chunkStr.split('\n');
+          
+          for (const line of lines) {
+             if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6);
+                if (!dataStr) continue;
+                try {
+                  const data = JSON.parse(dataStr);
+                  if (data.error) throw new Error(data.error);
+
+                  if (data.type === 'language') {
+                      ttsLanguage = data.language;
+                  } 
+                  else if (data.type === 'content') {
+                     // Create message div on first content chunk
+                     if (!agentMessageDiv) {
+                        const existingTyping = document.getElementById('typingMsg');
+                        if (existingTyping) existingTyping.remove();
+                        agentMessageDiv = addMessageElement('agent');
+                     }
+
+                     fullText += data.text;
+                     sentenceBuffer += data.text;
+                     
+                     agentMessageDiv.innerText = fullText;
+                     chatBox.scrollTop = chatBox.scrollHeight;
+                     
+                     // Regex to detect complete sentences (. ? ! or newline)
+                     const boundaryRegex = /([^.!?\n]+[.!?\n]+)/;
+                     let match;
+                     while ((match = boundaryRegex.exec(sentenceBuffer)) !== null) {
+                         const sentence = match[0].trim();
+                         sentenceBuffer = sentenceBuffer.slice(match.index + match[0].length);
+                         if (sentence.length > 0) {
+                             queueSentenceForTTS(sentence, ttsLanguage);
+                         }
+                     }
+                  } 
+                  else if (data.type === 'metadata') {
+                     chatHistory = data.messages;
+                     if (data.products && data.products.length > 0) {
+                        data.products.slice(0, 2).forEach(prod => {
+                          if(!prod.title) return;
+                          const card = document.createElement('div');
+                          card.className = 'product-card';
+                          card.innerHTML = `
+                            ${prod.featured_image ? `<img src="${prod.featured_image}">` : ''}
+                            <div>
+                              <strong>${prod.title}</strong><br>
+                              <small>$${prod.price || 'N/A'}</small>
+                            </div>
+                          `;
+                          agentMessageDiv.appendChild(card);
+                        });
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                     }
+                  }
+                } catch(e) {}
+             }
+          }
+        }
+        
+        // Flush remaining text
+        if (sentenceBuffer.trim().length > 0) {
+            queueSentenceForTTS(sentenceBuffer.trim(), ttsLanguage);
+        }
+        
+      } catch (err) {
+        const existingTyping = document.getElementById('typingMsg');
+        if (existingTyping) existingTyping.remove();
+        
+        const div = addMessageElement('agent');
+        div.innerText = "Error connecting to server.";
+        setStatus("Connection lost");
+      } finally {
+        isStreamComplete = true;
+        checkStreamComplete();
+      }
+    }
+
+    // UI Input events
+    sendBtn.addEventListener('click', () => sendRequest(chatInput.value));
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendRequest(chatInput.value);
+    });
+
+    // --- Lightning Fast Voice Logic ---
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true; 
+      recognition.interimResults = true;
+      recognition.lang = 'en-IN'; 
+
+      recognition.onstart = () => {
+        micBtn.classList.add('recording');
+        setStatus("Listening...");
+        finalTranscript = "";
+      };
+
+      recognition.onend = () => {
+        micBtn.classList.remove('recording');
+        if (isListening) {
+            try { recognition.start(); } catch(e){}
+        }
+      };
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + " ";
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        const fullText = finalTranscript + interimTranscript;
+        if (fullText.trim().length > 0) {
+            chatInput.value = fullText; 
+        }
+
+        clearTimeout(silenceTimer);
+        
+        if (fullText.trim().length > 2) {
+          // **Ultra-Fast 0.6s Silence Detection**
+          silenceTimer = setTimeout(() => {
+            const sendText = fullText.trim();
+            if (sendText) {
+                chatInput.value = "";
+                sendRequest(sendText);
+            }
+          }, 600);
+        }
+      };
+      
+      recognition.onerror = (event) => {
+          if (event.error === 'not-allowed') {
+              stopListening(false);
+              setStatus("Mic permission denied");
+          }
+      };
+    } else {
+      micBtn.style.display = 'none';
+      setStatus("Microphone not supported");
+    }
+
+    function startListening() {
+      isListening = true;
+      if (!audioPlayer.paused) audioPlayer.pause();
+      
+      if (recognition) {
+        try { recognition.start(); } catch (e) {} 
+      }
+    }
+
+    function stopListening(processCurrent = true) {
+      isListening = false;
+      clearTimeout(silenceTimer);
+      if (recognition) recognition.stop();
+      micBtn.classList.remove('recording');
+      setStatus("Ready");
+    }
+
+    micBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!hasUnlockedAudio) {
+        audioPlayer.play().catch(() => {});
+        hasUnlockedAudio = true;
+        if (chatHistory.length === 0) {
+            const welcomeText = "Hello! I am Bodhi Health Support. How can I help you today?";
+            queueSentenceForTTS(welcomeText, "en");
+        }
+      }
+      
+      if (isListening) stopListening(false);
+      else startListening();
+    });
+    
+    document.addEventListener('click', () => {
+       if (!hasUnlockedAudio) {
+         audioPlayer.play().catch(() => {});
+         hasUnlockedAudio = true;
+         if (chatHistory.length === 0) {
+             const welcomeText = "Hello! I am Bodhi Health Support. How can I help you today?";
+             queueSentenceForTTS(welcomeText, "en");
+         }
+       }
+    }, { once: true });
+  </script>
+</body>
+</html>

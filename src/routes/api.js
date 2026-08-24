@@ -10,13 +10,19 @@ const { createOrder, getOrderStatus } = require('../controllers/orderController'
 const { getCustomer } = require('../controllers/customerController');
 const { getStoreInfo } = require('../controllers/storeController');
 const { handleAction } = require('../controllers/agentController');
+const { handleSmallestWebhook, streamTTS } = require('../controllers/smallestController');
+const { handleChat } = require('../controllers/chatController');
+const authenticate = require('../middleware/auth');
 
-router.post('/search-products', validateSearch, searchProducts);
-router.post('/product', validateProduct, getProduct);
-router.post('/create-order', validateCreateOrder, createOrder);
-router.post('/order-status', validateOrderStatus, getOrderStatus);
-router.post('/customer', validateCustomerSearch, getCustomer);
-router.post('/store-info', getStoreInfo);
-router.post('/agent', handleAction);
+router.post('/search-products', authenticate, validateSearch, searchProducts);
+router.post('/product', authenticate, validateProduct, getProduct);
+router.post('/create-order', authenticate, validateCreateOrder, createOrder);
+router.post('/order-status', authenticate, validateOrderStatus, getOrderStatus);
+router.post('/customer', authenticate, validateCustomerSearch, getCustomer);
+router.post('/store-info', authenticate, getStoreInfo);
+router.post('/agent', authenticate, handleAction);
+router.post('/smallest', handleSmallestWebhook);
+router.post('/chat', authenticate, handleChat);
+router.get('/tts', streamTTS);
 
 module.exports = router;

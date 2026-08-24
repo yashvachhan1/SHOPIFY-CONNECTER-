@@ -11,10 +11,17 @@ const logger = require('./utils/logger');
 const apiRoutes = require('./routes/api');
 const docsRoute = require('./routes/docs');
 
+const path = require('path');
+
 const app = express();
 
-// Security Middleware
-app.use(helmet());
+// Serve static files for the test UI
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Security Middleware (adjusted for static assets)
+app.use(helmet({
+  contentSecurityPolicy: false // Disable CSP for the test UI to allow inline styles/scripts if needed
+}));
 app.use(cors());
 
 // Rate Limiting (100 requests per 15 minutes)
