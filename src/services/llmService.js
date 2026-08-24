@@ -57,7 +57,7 @@ const processChat = async (messages, res) => {
   
   async function runCompletionAndStream(currentMessages) {
     const stream = await groq.chat.completions.create({
-      model: "openai/gpt-oss-20b",
+      model: "openai/gpt-oss-120b",
       messages: currentMessages,
       tools: tools,
       tool_choice: "auto",
