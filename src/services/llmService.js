@@ -1,9 +1,12 @@
-const Groq = require('groq-sdk');
-const { groqApiKey } = require('../config/env');
+const { OpenAI } = require('openai');
 const { queryShopify } = require('./shopifyService');
 const logger = require('../utils/logger');
 
-const groq = new Groq({ apiKey: groqApiKey });
+// Initialize OpenAI client pointing to Gemini
+const openai = new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+});
 
 const SYSTEM_PROMPT = `You are a friendly, knowledgeable, and professional virtual assistant for "Bodhi Health Inc.", a premium health supplements and wellness brand. You speak in a helpful and polite tone.
 
@@ -56,8 +59,8 @@ const processChat = async (messages, res) => {
   let finalProducts = [];
   
   async function runCompletionAndStream(currentMessages) {
-    const stream = await groq.chat.completions.create({
-      model: "qwen/qwen3.6-27b",
+    const stream = await openai.chat.completions.create({
+      model: "gemini-2.5-flash",
       messages: currentMessages,
       tools: tools,
       tool_choice: "auto",
@@ -72,7 +75,6 @@ const processChat = async (messages, res) => {
     
     let isToolCall = false;
     let toolCalls = [];
-    let inThinkBlock = false;
 
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta;
@@ -93,18 +95,6 @@ const processChat = async (messages, res) => {
       // Handle Standard Content Streaming
       if (!isToolCall && delta?.content) {
         let text = delta.content;
-        
-        // Filter out Qwen <think> reasoning blocks
-        if (text.includes('<think>')) inThinkBlock = true;
-        if (inThinkBlock) {
-            if (text.includes('</think>')) {
-                inThinkBlock = false;
-                text = text.split('</think>')[1] || "";
-                if (!text) continue;
-            } else {
-                continue;
-            }
-        }
         
         // Intercept language tag without sending it to user
         if (isParsingTag) {
