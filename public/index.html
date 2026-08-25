@@ -143,14 +143,20 @@
   <div id="ai-sub-text">Tap the mic icon below to speak</div>
   
   <!-- Interactive Mic Graphic -->
-  <div id="ai-panel-mic" onclick="handleMicClick()" style="width:70px; height:70px; border-radius:50%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: 0.3s;">
+  <div id="ai-panel-mic" onclick="handleMicClick()" style="width:70px; height:70px; border-radius:50%; background:#f0f0f0; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: 0.3s; margin-bottom: 15px;">
     <svg id="ai-mic-icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+  </div>
+
+  <!-- Chat Input for Local Testing -->
+  <div style="display: flex; width: 100%; gap: 5px;">
+    <input type="text" id="ai-chat-input" placeholder="Type a message..." style="flex:1; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; outline:none;" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+    <button onclick="sendChatMessage()" style="padding:10px 15px; background:#94C11F; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">Send</button>
   </div>
 </div>
 
 <script>
-  // UPDATE THIS TUNNEL URL WITH YOUR ACTIVE NGROK/TUNNELMOLE URL OR RENDER URL
-  const BACKEND_URL = "https://agzmsd-ip-14-96-104-70.tunnelmole.net";
+  // SET BACKEND_URL TO EMPTY STRING SO IT WORKS LOCALLY
+  const BACKEND_URL = "";
   const BACKEND_API_KEY = "super_secret_elevenlabs_token_123"; 
   
   let chatHistory = [];
@@ -438,6 +444,16 @@
           isStreamComplete = true;
           checkStreamComplete();
       }
+  }
+
+  function sendChatMessage() {
+    const input = document.getElementById("ai-chat-input");
+    const text = input.value.trim();
+    if (text !== "") {
+      input.value = "";
+      updateStatus("Processing...", "#666");
+      processVoiceCommand(text);
+    }
   }
 </script>
 <!-- END OF WIDGET -->
