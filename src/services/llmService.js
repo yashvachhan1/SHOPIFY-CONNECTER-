@@ -2,14 +2,10 @@ const { OpenAI } = require('openai');
 const { queryShopify } = require('./shopifyService');
 const logger = require('../utils/logger');
 
-const part1 = "AQ.Ab8RN6KJ8oEK";
-const part2 = "r1H_T2RjGbiQnX_Z";
-const part3 = "tnM_lV_GPdS5nfC4dnfSTA";
-
-// Initialize OpenAI client pointing to Gemini
+// Initialize OpenAI client pointing to Groq
 const openai = new OpenAI({
-  apiKey: process.env.GEMINI_API_KEY || (part1 + part2 + part3),
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/'
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1'
 });
 
 const SYSTEM_PROMPT = `You are a friendly, knowledgeable, and professional virtual assistant for "Bodhi Health Inc.", a premium health supplements and wellness brand. You speak in a helpful and polite tone.
@@ -19,36 +15,39 @@ Do NOT introduce yourself (e.g., do not say "Hello, I am from Bodhi Health"). Th
 
 YOUR CAPABILITIES & RULES:
 1. You have access to the Bodhi Health Shopify store via your tools. You can search for products, get product details, create orders, and check order statuses.
-2. PRODUCT RECOMMENDATIONS (CRITICAL): If a user mentions a health issue, symptom (like bloodstream problems, joint pain, energy loss, etc.), or health goal, you MUST use the 'search_products' tool to find relevant supplements in our store.
-3. CONFIDENT ASSISTANCE: If you find a matching product, confidently recommend it as a solution provided by Bodhi Health. Explain its benefits based on the product details you fetch.
-4. MEDICAL DISCLAIMER OVERRIDE: NEVER say "I cannot provide medical advice" in a way that stops you from helping. You ARE allowed to recommend Bodhi Health products for their issues. If the issue sounds severe, you can recommend the product and simply add a polite, gentle disclaimer like: "Our products are excellent for supporting your health, but please consult a doctor for serious conditions."
-5. SALES FOCUS: Act as a helpful representative. If the user likes a product, ask if they would like to place an order. If yes, collect their details and use the 'create_order' tool.
-6. PRICING RULE (CRITICAL): ONLY mention the price of a product if the customer explicitly asks for it (e.g. "Kitne ka hai?", "What is the price?"). If they do not ask, do NOT mention the price.
-7. CONVERSATIONAL & CONCISE (CRITICAL): Keep your answers VERY SHORT (maximum 2-3 sentences). Do NOT write long paragraphs. 
-8. NO MARKDOWN (CRITICAL): Do NOT use bolding (**), bullet points (-), or any markdown formatting. Write plain, conversational text that is easy to read out loud.
-9. TONE: Be empathetic, polite, and strictly act as an employee of Bodhi Health Inc.
-
-LANGUAGE ROUTING INSTRUCTION (CRITICAL):
-You MUST ALWAYS reply in English by default.
-Even if the user speaks to you in Hindi, Gujarati, or Hinglish, you MUST reply in English!
-The ONLY exception is if the user EXPLICITLY COMMANDS you to speak in Hindi (e.g., "Hindi me baat karo", "Speak in Hindi"). Only then you may reply in Hindi.
-If you reply in English, you MUST start your message with exactly: [EN]
-If you reply in Hindi, you MUST start your message with exactly: [HI] 
-If you write Hindi, use native Devanagari script. Do not write Hindi in English letters (Hinglish).
-Example: "[EN] Yes, we have..." or "[HI] जी हाँ, हमारे पास..."`;
+2. PRODUCT RECOMMENDATIONS: If a user mentions a health issue, symptom, or health goal, you MUST use the 'search_products' tool to find relevant supplements in our store.
+3. CONFIDENT ASSISTANCE: If you find a matching product, confidently recommend it as a solution provided by Bodhi Health. Explain its benefits briefly.
+4. SALES FOCUS: Act as a helpful representative. If the user likes a product, ask if they would like to place an order.
+5. PRICING RULE: ONLY mention the price of a product if the customer explicitly asks for it.
+6. CONCISE RESPONSES (CRITICAL): Keep your answers VERY SHORT (maximum 2-3 sentences). Do NOT write long paragraphs or long bulleted lists.
+7. LANGUAGE & TONE: Be empathetic and polite. Reply in the same language the user speaks to you (e.g., if they speak Hinglish, reply in Hinglish. If they speak English, reply in English).`;
 
 const tools = [
   {
     type: "function",
     function: {
       name: "search_products",
-      description: "Search the Shopify store for products based on a query (e.g., 'blood stream', 'energy', 'curcumin')",
+      description: "Search the local database for products based on a query. ALWAYS correct spelling mistakes (e.g. bloodstromm -> bloodstream) and translate Hindi/Hinglish terms to English keywords before searching. Very fast. Does NOT return price or stock.",
       parameters: {
         type: "object",
         properties: {
           query: { type: "string", description: "The search term to look for in products" }
         },
         required: ["query"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "check_live_price",
+      description: "ONLY use this if the user explicitly asks for the price or quantity/stock of a product. Fetches live data from Shopify.",
+      parameters: {
+        type: "object",
+        properties: {
+          product_handle: { type: "string", description: "The handle/ID of the product to check" }
+        },
+        required: ["product_handle"]
       }
     }
   }
@@ -64,7 +63,7 @@ const processChat = async (messages, res) => {
   
   async function runCompletionAndStream(currentMessages) {
     const stream = await openai.chat.completions.create({
-      model: "gemini-2.5-flash",
+      model: "qwen/qwen3.8-27b",
       messages: currentMessages,
       tools: tools,
       tool_choice: "auto",
@@ -134,115 +133,136 @@ const processChat = async (messages, res) => {
     return { isToolCall, toolCalls, fullContent, detectedLanguage };
   }
 
-  // 1. Initial API call
-  let result = await runCompletionAndStream(messages);
+  try {
+    // 1. Initial API call
+    let result = await runCompletionAndStream(messages);
 
-  // 2. Handle Tool Calls if any
-  if (result.isToolCall) {
-    const compactToolCalls = result.toolCalls.filter(Boolean); // Remove nulls
-    
-    // Add assistant's tool call request to history
-    messages.push({
-      role: 'assistant',
-      content: null,
-      tool_calls: compactToolCalls
-    });
+    // 2. Handle Tool Calls if any
+    if (result.isToolCall) {
+      const compactToolCalls = result.toolCalls.filter(Boolean); // Remove nulls
+      
+      // Add assistant's tool call request to history
+      messages.push({
+        role: 'assistant',
+        content: null,
+        tool_calls: compactToolCalls
+      });
 
-    for (const toolCall of compactToolCalls) {
-      if (toolCall.function.name === "search_products") {
-        let args = {};
-        try { args = JSON.parse(toolCall.function.arguments); } catch(e){}
-        const searchQuery = args.query || "";
+      for (const toolCall of compactToolCalls) {
+        if (toolCall.function.name === "search_products") {
+          let args = {};
+          try { args = JSON.parse(toolCall.function.arguments); } catch(e){}
+          const searchQuery = args.query || "";
 
-        logger.info(`LLM requested product search for: "${searchQuery}"`);
-        
-        finalProducts = [];
-        
-        try {
-          // 1. Search Local CSV Database
-          const { searchLocalProducts } = require('./csvService');
-          const localMatches = await searchLocalProducts(searchQuery);
+          logger.info(`LLM requested product search for: "${searchQuery}"`);
           
-          if (localMatches.length > 0) {
-              // 2. Fetch Live Price & Inventory from Shopify
-              // Construct a query for the matched handles
-              const handleQueries = localMatches.map(p => `handle:${p.handle}`).join(' OR ');
-              
-              const graphqlQuery = `
-                query FetchLiveDetails($query: String!) {
-                  products(first: 10, query: $query) {
-                    edges {
-                      node {
-                        handle
-                        variants(first: 1) {
-                          edges { node { price compareAtPrice inventoryQuantity } }
-                        }
+          finalProducts = [];
+          
+          try {
+            // 1. Search Local CSV Database Only (for max speed)
+            const { searchLocalProducts } = require('./csvService');
+            const localMatches = await searchLocalProducts(searchQuery);
+            
+            if (localMatches.length > 0) {
+                finalProducts = localMatches.map(local => ({
+                    id: local.handle,
+                    title: local.title,
+                    description: local.description,
+                    activeIngredients: local.activeIngredients,
+                    price: "N/A", // Use N/A to keep responses purely conversational without fetching live prices
+                    featured_image: local.image
+                }));
+            } else {
+                logger.info(`No local matches found in CSV for: "${searchQuery}"`);
+            }
+            
+          } catch (err) {
+            logger.error('Search error', err);
+          }
+
+          // 3. Send result back to Groq
+          messages.push({
+            tool_call_id: toolCall.id,
+            role: "tool",
+            name: "search_products",
+            content: JSON.stringify(finalProducts),
+          });
+        } else if (toolCall.function.name === "check_live_price") {
+          let args = {};
+          try { args = JSON.parse(toolCall.function.arguments); } catch(e){}
+          const productHandle = args.product_handle || "";
+
+          logger.info(`LLM requested live price check for: "${productHandle}"`);
+          let liveResult = { handle: productHandle, price: "Not found", inventory: 0 };
+          
+          try {
+            const graphqlQuery = `
+              query FetchLiveDetails($query: String!) {
+                products(first: 1, query: $query) {
+                  edges {
+                    node {
+                      handle
+                      variants(first: 1) {
+                        edges { node { price compareAtPrice inventoryQuantity } }
                       }
                     }
                   }
                 }
-              `;
-              
-              const liveData = await queryShopify(graphqlQuery, { query: handleQueries });
-              
-              // 3. Merge Local CSV Data with Live API Data
-              finalProducts = localMatches.map(local => {
-                  // Find corresponding live data
-                  const liveNode = liveData?.products?.edges?.find(e => e.node.handle === local.handle)?.node;
-                  const variant = liveNode?.variants?.edges?.[0]?.node;
-                  
-                  return {
-                      id: local.handle,
-                      title: local.title,
-                      description: local.description,
-                      activeIngredients: local.activeIngredients,
-                      price: variant?.price || "N/A",
-                      compareAtPrice: variant?.compareAtPrice || null,
-                      inventoryQuantity: variant?.inventoryQuantity || 0,
-                      featured_image: local.image
-                  };
-              });
-              
-          } else {
-              logger.info(`No local matches found in CSV for: "${searchQuery}"`);
+              }
+            `;
+            
+            const liveData = await queryShopify(graphqlQuery, { query: `handle:${productHandle}` });
+            const liveNode = liveData?.products?.edges?.[0]?.node;
+            const variant = liveNode?.variants?.edges?.[0]?.node;
+            
+            if (variant) {
+                liveResult = {
+                    handle: productHandle,
+                    price: variant.price,
+                    compareAtPrice: variant.compareAtPrice,
+                    inventory: variant.inventoryQuantity
+                };
+            }
+          } catch (err) {
+            logger.error('Live price check error', err);
           }
-          
-        } catch (err) {
-          logger.error('Hybrid search error', err);
-        }
 
-        // 3. Send result back to Groq
-        messages.push({
-          tool_call_id: toolCall.id,
-          role: "tool",
-          name: "search_products",
-          content: JSON.stringify(finalProducts),
-        });
+          messages.push({
+            tool_call_id: toolCall.id,
+            role: "tool",
+            name: "check_live_price",
+            content: JSON.stringify(liveResult),
+          });
+        }
       }
+
+      // 4. Run second completion to get actual response based on tool results
+      result = await runCompletionAndStream(messages);
+    }
+    
+    // Clean up content
+    let cleanContent = result.fullContent;
+    if (cleanContent) {
+      cleanContent = cleanContent.replace(/<think>[\s\S]*?<\/think>\n*/g, '').trim();
     }
 
-    // 4. Run second completion to get actual response based on tool results
-    result = await runCompletionAndStream(messages);
-  }
-  
-  // Clean up content
-  let cleanContent = result.fullContent;
-  if (cleanContent) {
-    cleanContent = cleanContent.replace(/<think>[\s\S]*?<\/think>\n*/g, '').trim();
-  }
+    messages.push({ role: 'assistant', content: cleanContent });
+    
+    // Filter out tool calls to save tokens on subsequent turns
+    const filteredMessages = messages.filter(m => m.role !== 'tool' && !m.tool_calls);
 
-  messages.push({ role: 'assistant', content: cleanContent });
-  
-  // Filter out tool calls to save tokens on subsequent turns
-  const filteredMessages = messages.filter(m => m.role !== 'tool' && !m.tool_calls);
+    // Send final metadata event
+    res.write(`data: ${JSON.stringify({
+      type: "metadata",
+      language: result.detectedLanguage,
+      products: finalProducts,
+      messages: filteredMessages
+    })}\n\n`);
 
-  // Send final metadata event
-  res.write(`data: ${JSON.stringify({
-    type: "metadata",
-    language: result.detectedLanguage,
-    products: finalProducts,
-    messages: filteredMessages
-  })}\n\n`);
+  } catch (error) {
+    logger.error('Error during chat processing', error);
+    res.write(`data: ${JSON.stringify({ type: "error", error: "Failed to process chat" })}\n\n`);
+  }
 };
 
 module.exports = { processChat };

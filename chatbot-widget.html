@@ -226,7 +226,7 @@
     const typingIndicator = document.getElementById('bodhi-chat-typing');
 
     // CONFIGURE YOUR API HERE
-    const API_URL = 'http://localhost:3000/api/chat';
+    const API_URL = 'https://shopify-connecter.onrender.com/api/chat';
     const API_TOKEN = 'super_secret_elevenlabs_token_123'; // Make sure this matches your .env API_SECRET
 
     let chatHistory = [
@@ -278,42 +278,31 @@
         
         let botMsgDiv = createMessageBubble('bot');
         let fullBotReply = "";
-        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           
-          buffer += decoder.decode(value, { stream: true });
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
           
-          let eventEndIndex;
-          while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
-            const eventStr = buffer.slice(0, eventEndIndex);
-            buffer = buffer.slice(eventEndIndex + 2);
-            
-            const lines = eventStr.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const dataStr = line.replace('data: ', '').trim();
-                if (dataStr === '[DONE]') continue;
-                
-                try {
-                  const parsed = JSON.parse(dataStr);
-                  if (parsed.text) {
-                    fullBotReply += parsed.text;
-                    // Basic Markdown parsing for bold and line breaks
-                    let htmlReply = fullBotReply
-                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/\n/g, '<br>');
-                    botMsgDiv.innerHTML = htmlReply;
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                  }
-                  if (parsed.error) {
-                    botMsgDiv.innerText = "Error: " + parsed.error;
-                  }
-                } catch (e) {
-                  console.error("Parse error on chunk", e);
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataStr = line.replace('data: ', '').trim();
+              if (dataStr === '[DONE]') continue;
+              
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.content) {
+                  fullBotReply += parsed.content;
+                  botMsgDiv.innerText = fullBotReply;
+                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }
+                if (parsed.error) {
+                  botMsgDiv.innerText = "Error: " + parsed.error;
+                }
+              } catch (e) {
+                // Ignore parse errors on partial chunks
               }
             }
           }

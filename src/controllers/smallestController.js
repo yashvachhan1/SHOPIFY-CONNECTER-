@@ -25,8 +25,8 @@ const streamTTS = async (req, res, next) => {
     
     res.setHeader('Content-Type', 'audio/mpeg');
     
-    // Instead of streaming the response (which can hang the browser fetch loop),
-    // we buffer it into memory and send it in one go. Sentence chunks are very small.
+    // Buffer it so Express sets the Content-Length header.
+    // The generation takes <600ms, and Content-Length makes the browser <audio> tag play instantly.
     const arrayBuffer = await fetchRes.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     res.send(buffer);

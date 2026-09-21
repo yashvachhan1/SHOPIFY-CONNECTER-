@@ -23,7 +23,7 @@ const handleChat = async (req, res, next) => {
     if (!res.headersSent) {
       next(error);
     } else {
-      res.end(`\ndata: ${JSON.stringify({ error: "Internal Server Error" })}\n\n`);
+      res.end(`\ndata: ${JSON.stringify({ error: error.message || "Internal Server Error" })}\n\n`);
     }
   }
 };
