@@ -63,7 +63,7 @@ const processChat = async (messages, res) => {
   
   async function runCompletionAndStream(currentMessages) {
     const stream = await openai.chat.completions.create({
-      model: "qwen/qwen3.8-27b",
+      model: "openai/gpt-oss-120b",
       messages: currentMessages,
       tools: tools,
       tool_choice: "auto",
