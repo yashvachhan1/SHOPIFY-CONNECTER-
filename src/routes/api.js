@@ -10,7 +10,6 @@ const { createOrder, getOrderStatus } = require('../controllers/orderController'
 const { getCustomer } = require('../controllers/customerController');
 const { getStoreInfo } = require('../controllers/storeController');
 const { handleAction } = require('../controllers/agentController');
-const { handleSmallestWebhook, streamTTS } = require('../controllers/smallestController');
 const { handleChat } = require('../controllers/chatController');
 const authenticate = require('../middleware/auth');
 
@@ -21,8 +20,6 @@ router.post('/order-status', authenticate, validateOrderStatus, getOrderStatus);
 router.post('/customer', authenticate, validateCustomerSearch, getCustomer);
 router.post('/store-info', authenticate, getStoreInfo);
 router.post('/agent', authenticate, handleAction);
-router.post('/smallest', handleSmallestWebhook);
 router.post('/chat', authenticate, handleChat);
-router.get('/tts', streamTTS);
 
 module.exports = router;

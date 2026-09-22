@@ -92,8 +92,8 @@ const createOrder = async (req, res, next) => {
     const draftOrderId = draftRes.draftOrderCreate.draftOrder.id;
 
     const completeMutation = `
-      mutation draftOrderComplete($id: ID!) {
-        draftOrderComplete(id: $id) {
+      mutation draftOrderComplete($id: ID!, $paymentPending: Boolean!) {
+        draftOrderComplete(id: $id, paymentPending: $paymentPending) {
           draftOrder {
             order {
               id
@@ -106,8 +106,10 @@ const createOrder = async (req, res, next) => {
         }
       }
     `;
-    
-    const completeRes = await queryShopify(completeMutation, { id: draftOrderId });
+
+    // No real payment is collected in this flow (chat/voice ordering, no checkout step) - always
+    // complete as payment-pending so Shopify accounting/fulfillment never assumes money was received.
+    const completeRes = await queryShopify(completeMutation, { id: draftOrderId, paymentPending: true });
     
     if (completeRes.draftOrderComplete.userErrors.length > 0) {
       return sendResponse(res, 400, 'Failed to complete order', null, completeRes.draftOrderComplete.userErrors);
@@ -129,8 +131,8 @@ const createOrder = async (req, res, next) => {
 
 const getOrderStatus = async (req, res, next) => {
   try {
-    const { order_number } = req.body;
-    
+    const { order_number, email, phone } = req.body;
+
     const graphqlQuery = `
       query SearchOrders($query: String!) {
         orders(first: 1, query: $query) {
@@ -138,6 +140,8 @@ const getOrderStatus = async (req, res, next) => {
             node {
               id
               name
+              email
+              phone
               displayFinancialStatus
               displayFulfillmentStatus
               fulfillments {
@@ -154,11 +158,19 @@ const getOrderStatus = async (req, res, next) => {
 
     const data = await queryShopify(graphqlQuery, { query: `name:${order_number}` });
     const order = data.orders.edges[0]?.node;
-    
+
     if (!order) {
       return sendResponse(res, 404, 'Order not found');
     }
-    
+
+    // Ownership check: order number alone must never be enough to see someone else's order -
+    // the caller must also know the email or phone that was placed on that order.
+    const emailMatches = email && order.email && order.email.toLowerCase() === String(email).toLowerCase();
+    const phoneMatches = phone && order.phone && order.phone.replace(/\D/g, '').endsWith(String(phone).replace(/\D/g, ''));
+    if (!emailMatches && !phoneMatches) {
+      return sendResponse(res, 404, 'Order not found');
+    }
+
     const tracking = order.fulfillments?.[0]?.trackingInfo?.[0] || {};
 
     sendResponse(res, 200, 'Order status retrieved', {

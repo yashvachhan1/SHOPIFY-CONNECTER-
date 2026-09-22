@@ -154,7 +154,7 @@
     fill: currentColor;
     margin-left: -2px; /* Visual alignment for send icon */
   }
-  
+
   /* Loading Indicator */
   .bodhi-typing {
     display: none;
@@ -193,13 +193,13 @@
       Bodhi Health Assistant
       <button id="bodhi-chat-close-btn">&times;</button>
     </div>
-    
+
     <div id="bodhi-chat-messages">
       <!-- Default Greeting -->
       <div class="bodhi-msg bot">
         Hello! Main Bodhi Health se baat kar raha hu. Main aaj aapki health aur wellness ke liye kaise help kar sakta hu?
       </div>
-      
+
       <!-- Typing Indicator (Hidden by default) -->
       <div id="bodhi-chat-typing" class="bodhi-typing">
         <span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -245,6 +245,12 @@
     toggleBtn.addEventListener('click', toggleChat);
     closeBtn.addEventListener('click', toggleChat);
 
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
     async function sendMessage() {
       const text = chatInput.value.trim();
       if (!text) return;
@@ -252,7 +258,7 @@
       appendMessage(text, 'user');
       chatHistory.push({ role: "user", content: text });
       chatInput.value = '';
-      
+
       typingIndicator.style.display = 'block';
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
@@ -275,39 +281,51 @@
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
-        
+
         let botMsgDiv = createMessageBubble('bot');
         let fullBotReply = "";
+        let buffer = "";
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const dataStr = line.replace('data: ', '').trim();
-              if (dataStr === '[DONE]') continue;
-              
-              try {
-                const parsed = JSON.parse(dataStr);
-                if (parsed.content) {
-                  fullBotReply += parsed.content;
-                  botMsgDiv.innerText = fullBotReply;
-                  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          let eventEndIndex;
+          while ((eventEndIndex = buffer.indexOf('\n\n')) !== -1) {
+            const eventStr = buffer.slice(0, eventEndIndex);
+            buffer = buffer.slice(eventEndIndex + 2);
+
+            const lines = eventStr.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const dataStr = line.replace('data: ', '').trim();
+                if (dataStr === '[DONE]') continue;
+
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  if (parsed.text) {
+                    fullBotReply += parsed.text;
+                    // Escape first so any HTML/script in the LLM reply can't execute,
+                    // then apply our own minimal markdown (bold + line breaks) on top.
+                    let htmlReply = escapeHtml(fullBotReply)
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\n/g, '<br>');
+                    botMsgDiv.innerHTML = htmlReply;
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                  }
+                  if (parsed.error) {
+                    botMsgDiv.innerText = "Error: " + parsed.error;
+                  }
+                } catch (e) {
+                  console.error("Parse error on chunk", e);
                 }
-                if (parsed.error) {
-                  botMsgDiv.innerText = "Error: " + parsed.error;
-                }
-              } catch (e) {
-                // Ignore parse errors on partial chunks
               }
             }
           }
         }
-        
+
         chatHistory.push({ role: "assistant", content: fullBotReply });
 
       } catch (error) {

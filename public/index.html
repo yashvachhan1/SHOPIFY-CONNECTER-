@@ -245,6 +245,12 @@
     toggleBtn.addEventListener('click', toggleChat);
     closeBtn.addEventListener('click', toggleChat);
 
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
     async function sendMessage() {
       const text = chatInput.value.trim();
       if (!text) return;
@@ -301,8 +307,9 @@
                   const parsed = JSON.parse(dataStr);
                   if (parsed.text) {
                     fullBotReply += parsed.text;
-                    // Basic Markdown parsing for bold and line breaks
-                    let htmlReply = fullBotReply
+                    // Escape first so any HTML/script in the LLM reply can't execute,
+                    // then apply our own minimal markdown (bold + line breaks) on top.
+                    let htmlReply = escapeHtml(fullBotReply)
                       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                       .replace(/\n/g, '<br>');
                     botMsgDiv.innerHTML = htmlReply;

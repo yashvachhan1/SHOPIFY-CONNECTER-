@@ -1,6 +1,6 @@
 # Shopify AI Bridge
 
-A secure, production-ready Node.js bridge to connect an ElevenLabs AI Agent to the Shopify Admin GraphQL API.
+A secure, production-ready Node.js bridge that connects an AI chatbot (via Groq) to the Shopify Admin GraphQL API — product search, order creation, order status, and customer lookup.
 
 ## Features
 - **Security First:** Helmet, CORS, Rate Limiting, and strict Bearer Token authentication.
@@ -23,6 +23,7 @@ A secure, production-ready Node.js bridge to connect an ElevenLabs AI Agent to t
    SHOPIFY_STORE=your-store-name.myshopify.com
    SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_1234567890abcdef
    API_SECRET=your-secure-secret-token
+   GROQ_API_KEY=your-groq-api-key
    ```
 
 ## Running Locally
@@ -42,13 +43,17 @@ A Postman Collection (`shopify-ai-bridge.postman_collection.json`) is included i
 
 Don't forget to configure the `API_SECRET` in your Postman variables or headers to match your `.env`!
 
-## Connecting with ElevenLabs Webhook Tool
+## Chat widget
 
-When setting up your AI agent in ElevenLabs:
+`public/index.html` (local) and `chatbot-widget.html` (points at the deployed Render URL) are simple
+test pages for the `/api/chat` streaming endpoint — open either in a browser to try the bot directly.
 
-1. Create a Webhook Action.
-2. Set the Method to **POST**.
-3. Point the URL to your deployed endpoint (e.g., `https://your-domain.com/api/search-products`).
-4. In the Headers, add:
-   - `Authorization`: `Bearer your-secure-secret-token` (Must match `API_SECRET` in `.env`)
-5. In the Body, map the required parameters to the JSON format. The AI Bridge will respond with a consistent JSON schema that ElevenLabs can parse efficiently.
+## Endpoints
+
+- `POST /api/search-products`, `/api/product`, `/api/create-order`, `/api/order-status`,
+  `/api/customer`, `/api/store-info` — single-purpose REST endpoints (Bearer token required).
+- `POST /api/agent` — one generic endpoint that dispatches to the above based on an `action` field
+  in the body (`search_products`, `get_product_details`, `create_order`, `check_order_status`,
+  `get_customer`, `get_store_info`).
+- `POST /api/chat` — Groq-powered conversational endpoint (Server-Sent Events stream) used by the
+  chat widget.

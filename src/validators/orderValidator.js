@@ -1,4 +1,4 @@
-const { body, validationResult } = require('express-validator');
+const { body, validationResult, oneOf } = require('express-validator');
 const { sendResponse } = require('../utils/response');
 
 const validateCreateOrder = [
@@ -24,6 +24,10 @@ const validateCreateOrder = [
 
 const validateOrderStatus = [
   body('order_number').isString().trim().notEmpty().withMessage('Order number is required.'),
+  oneOf([
+    body('email').isEmail().normalizeEmail(),
+    body('phone').isString().trim().notEmpty()
+  ], { message: 'Order ki email ya phone (jo order par diya gaya tha) verify karne ke liye zaroori hai.' }),
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return sendResponse(res, 400, 'Validation Error', null, errors.array());

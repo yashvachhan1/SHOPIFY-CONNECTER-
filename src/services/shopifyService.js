@@ -3,7 +3,7 @@ const { shopifyStore, shopifyAdminToken } = require('../config/env');
 const logger = require('../utils/logger');
 
 const shopifyApi = axios.create({
-  baseURL: `https://${shopifyStore}/admin/api/2024-01/graphql.json`,
+  baseURL: `https://${shopifyStore}/admin/api/2025-10/graphql.json`,
   headers: {
     'Content-Type': 'application/json',
     'X-Shopify-Access-Token': shopifyAdminToken

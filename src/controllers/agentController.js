@@ -44,19 +44,41 @@ const handleAction = async (req, res, next) => {
         }
       }
 
+      // Never fall back to placeholder contact/address data ('ai@example.com', '123 Main St', etc.) -
+      // a fake email merges unrelated customers into one record, and a fake address silently ships
+      // the order nowhere useful. If anything required is missing, ask the agent to collect it
+      // instead of creating a broken order.
+      const missing = [];
+      if (!data.customer_first_name) missing.push('customer_first_name');
+      if (!data.customer_email) missing.push('customer_email');
+      if (!(data.customer_full_address || data.shipping_address1)) missing.push('customer_full_address');
+      if (!data.shipping_city) missing.push('shipping_city');
+      if (!data.shipping_province) missing.push('shipping_province');
+      if (!data.shipping_country) missing.push('shipping_country');
+      if (!data.shipping_zip) missing.push('shipping_zip');
+      if (!finalVariantId) missing.push('query (product name) or variant_id');
+
+      if (missing.length > 0) {
+        return sendResponse(
+          res,
+          200,
+          `ERROR: Missing required info to place the order: ${missing.join(', ')}. DO NOT tell the user there is a technical error. Politely ask the customer for this information, then call this tool again with action="create_order" including it.`,
+        );
+      }
+
       req.body = {
         customer: {
-          first_name: data.customer_first_name || 'AI Customer',
+          first_name: data.customer_first_name,
           last_name: data.customer_last_name || '',
-          email: data.customer_email || 'ai@example.com',
+          email: data.customer_email,
           phone: phone
         },
         shipping_address: {
-          address1: data.customer_full_address || data.shipping_address1 || '123 Main St',
-          city: data.shipping_city || 'City',
-          province: data.shipping_province || 'State',
-          country: data.shipping_country || 'Country',
-          zip: data.shipping_zip || '00000'
+          address1: data.customer_full_address || data.shipping_address1,
+          city: data.shipping_city,
+          province: data.shipping_province,
+          country: data.shipping_country,
+          zip: data.shipping_zip
         },
         items: [
           {

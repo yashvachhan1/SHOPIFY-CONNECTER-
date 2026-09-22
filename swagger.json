@@ -3,7 +3,7 @@
   "info": {
     "title": "Shopify AI Bridge",
     "version": "1.0.0",
-    "description": "Bridge between ElevenLabs AI Agent and Shopify Admin API"
+    "description": "Bridge between an AI chatbot (Groq) and the Shopify Admin API"
   },
   "servers": [
     {
