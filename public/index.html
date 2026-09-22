@@ -11,6 +11,92 @@
     --bodhi-green-light: #a9c04f;
   }
 
+  /* Teaser Popup (greeting + quick questions) */
+  #bodhi-chat-teaser {
+    position: fixed;
+    bottom: 96px;
+    right: 22px;
+    width: 290px;
+    max-width: calc(100vw - 44px);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+    padding: 16px 16px 14px;
+    box-sizing: border-box !important;
+    z-index: 2147483646;
+    display: none;
+    animation: bodhiChatFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #bodhi-chat-teaser.show {
+    display: block;
+  }
+  #bodhi-chat-teaser::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    right: 28px;
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    transform: rotate(45deg);
+    border-radius: 3px;
+  }
+  #bodhi-teaser-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    background: #f0f2f5;
+    border: none;
+    border-radius: 50%;
+    color: #6b7280;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #bodhi-teaser-close:hover {
+    background: #e2e5ea;
+  }
+  #bodhi-teaser-greeting {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: #1f2430;
+    padding-right: 22px;
+    margin-bottom: 12px;
+    line-height: 1.35;
+  }
+  #bodhi-chat-teaser .bodhi-teaser-q {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #ffffff;
+    border: 1.5px solid var(--bodhi-green);
+    color: var(--bodhi-green-dark);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 9px 14px !important;
+    box-sizing: border-box !important;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  #bodhi-chat-teaser .bodhi-teaser-q:last-child {
+    margin-bottom: 0;
+  }
+  #bodhi-chat-teaser .bodhi-teaser-q:hover {
+    background: var(--bodhi-green);
+    color: #ffffff;
+  }
+
   /* Chat Floating Button */
   #bodhi-chat-toggle-btn {
     position: fixed;
@@ -295,6 +381,16 @@
 </style>
 
 <div id="bodhi-chat-container">
+  <!-- Teaser Popup -->
+  <div id="bodhi-chat-teaser">
+    <button id="bodhi-teaser-close" type="button" aria-label="Dismiss">&times;</button>
+    <div id="bodhi-teaser-greeting">&#128075; Need help finding the right supplement?</div>
+    <button type="button" class="bodhi-teaser-q">What products do you offer?</button>
+    <button type="button" class="bodhi-teaser-q">Do you have anything for sleep?</button>
+    <button type="button" class="bodhi-teaser-q">How do I track my order?</button>
+    <button type="button" class="bodhi-teaser-q">What's your return policy?</button>
+  </div>
+
   <!-- The Floating Button -->
   <button id="bodhi-chat-toggle-btn" type="button" aria-label="Open chat" style="padding:0 !important;">
     <svg class="bodhi-icon-chat" viewBox="0 0 24 24" style="fill:#ffffff !important;"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z" style="fill:#ffffff !important;"/></svg>
@@ -341,6 +437,9 @@
     const chatInput = document.getElementById('bodhi-chat-input');
     const messagesContainer = document.getElementById('bodhi-chat-messages');
     const typingIndicator = document.getElementById('bodhi-chat-typing');
+    const teaser = document.getElementById('bodhi-chat-teaser');
+    const teaserCloseBtn = document.getElementById('bodhi-teaser-close');
+    const teaserQuestionBtns = document.querySelectorAll('.bodhi-teaser-q');
 
     // CONFIGURE YOUR API HERE
     const API_URL = 'http://localhost:3000/api/chat';
@@ -350,19 +449,58 @@
       { role: "system", content: "You are a helpful assistant for Bodhi Health." }
     ];
 
+    function hideTeaser() {
+      teaser.classList.remove('show');
+    }
+
+    function openChat() {
+      chatWindow.style.display = 'flex';
+      toggleBtn.classList.add('open');
+      hideTeaser();
+      chatInput.focus();
+    }
+
+    function closeChat() {
+      chatWindow.style.display = 'none';
+      toggleBtn.classList.remove('open');
+    }
+
     function toggleChat() {
       if (chatWindow.style.display === 'flex') {
-        chatWindow.style.display = 'none';
-        toggleBtn.classList.remove('open');
+        closeChat();
       } else {
-        chatWindow.style.display = 'flex';
-        toggleBtn.classList.add('open');
-        chatInput.focus();
+        openChat();
       }
     }
 
     toggleBtn.addEventListener('click', toggleChat);
     closeBtn.addEventListener('click', toggleChat);
+
+    teaserCloseBtn.addEventListener('click', function() {
+      hideTeaser();
+      try { sessionStorage.setItem('bodhiTeaserDismissed', '1'); } catch (e) {}
+    });
+    teaserQuestionBtns.forEach(function(qBtn) {
+      qBtn.addEventListener('click', function() {
+        const question = qBtn.textContent.trim();
+        openChat();
+        sendMessage(question);
+      });
+    });
+
+    // Show the teaser a couple seconds after the page loads, once per visit,
+    // so it doesn't pop up again every time the customer navigates pages.
+    try {
+      if (!sessionStorage.getItem('bodhiTeaserDismissed')) {
+        setTimeout(function() {
+          if (chatWindow.style.display !== 'flex') {
+            teaser.classList.add('show');
+          }
+        }, 2500);
+      }
+    } catch (e) {
+      setTimeout(function() { teaser.classList.add('show'); }, 2500);
+    }
 
     function escapeHtml(str) {
       const div = document.createElement('div');
@@ -370,8 +508,8 @@
       return div.innerHTML;
     }
 
-    async function sendMessage() {
-      const text = chatInput.value.trim();
+    async function sendMessage(presetText) {
+      const text = (typeof presetText === 'string' ? presetText : chatInput.value).trim();
       if (!text) return;
 
       appendMessage(text, 'user');
