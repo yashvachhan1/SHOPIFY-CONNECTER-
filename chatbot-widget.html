@@ -5,152 +5,247 @@
   /* Reset some basic styles for the widget */
   #bodhi-chat-container {
     font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    /* Matches the Bodhi Health site's olive-green brand color (logo wave / TRADE link / highlight boxes) */
+    --bodhi-green: #96ab3f;
+    --bodhi-green-dark: #6e7d2e;
+    --bodhi-green-light: #a9c04f;
   }
 
   /* Chat Floating Button */
   #bodhi-chat-toggle-btn {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 22px;
+    right: 22px;
     width: 60px;
     height: 60px;
-    background-color: #2e7d32; /* Bodhi Health Green */
+    background: linear-gradient(135deg, var(--bodhi-green-light), var(--bodhi-green-dark));
     color: white;
     border: none;
     border-radius: 50%;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 20px rgba(150, 171, 63, 0.45);
     cursor: pointer;
     z-index: 2147483647;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: transform 0.3s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
   }
   #bodhi-chat-toggle-btn:hover {
-    transform: scale(1.05);
+    transform: scale(1.08);
+    box-shadow: 0 8px 26px rgba(150, 171, 63, 0.55);
+  }
+  #bodhi-chat-toggle-btn:active {
+    transform: scale(0.96);
   }
   #bodhi-chat-toggle-btn svg {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     fill: currentColor;
+  }
+  #bodhi-chat-toggle-btn .bodhi-icon-close {
+    display: none;
+    width: 24px;
+    height: 24px;
+  }
+  #bodhi-chat-toggle-btn.open .bodhi-icon-chat {
+    display: none;
+  }
+  #bodhi-chat-toggle-btn.open .bodhi-icon-close {
+    display: block;
   }
 
   /* Chat Window */
   #bodhi-chat-window {
     position: fixed;
-    bottom: 90px;
-    right: 20px;
-    width: 350px;
-    height: 550px;
-    max-height: calc(100vh - 120px);
+    bottom: 96px;
+    right: 22px;
+    width: 366px;
+    height: 560px;
+    max-height: calc(100vh - 130px);
     background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border-radius: 18px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
     display: none; /* Hidden by default */
     flex-direction: column;
     overflow: hidden;
     z-index: 2147483647;
-    animation: bodhiChatFadeIn 0.3s ease;
+    animation: bodhiChatFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @keyframes bodhiChatFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(16px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @media (max-width: 480px) {
+    #bodhi-chat-window {
+      width: calc(100vw - 24px);
+      height: calc(100vh - 110px);
+      right: 12px;
+      bottom: 86px;
+    }
+    #bodhi-chat-toggle-btn {
+      right: 16px;
+      bottom: 16px;
+    }
   }
 
   /* Chat Header */
   #bodhi-chat-header {
-    background-color: #2e7d32; /* Bodhi Health Green */
+    background: linear-gradient(135deg, var(--bodhi-green-light), var(--bodhi-green-dark));
     color: white;
-    padding: 15px 20px;
+    padding: 16px 18px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
+  }
+  #bodhi-chat-header-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  #bodhi-chat-header-title {
     font-weight: 600;
-    font-size: 16px;
+    font-size: 15.5px;
+  }
+  #bodhi-chat-header-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 400;
+  }
+  #bodhi-chat-header-status .bodhi-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #7ee787;
+    box-shadow: 0 0 0 2px rgba(126, 231, 135, 0.25);
   }
   #bodhi-chat-close-btn {
-    background: none;
+    background: rgba(255, 255, 255, 0.15);
     border: none;
     color: white;
-    font-size: 24px;
+    font-size: 20px;
     line-height: 1;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
     cursor: pointer;
-    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+  #bodhi-chat-close-btn:hover {
+    background: rgba(255, 255, 255, 0.28);
   }
 
   /* Chat Messages Area */
   #bodhi-chat-messages {
     flex: 1;
-    padding: 15px;
+    padding: 16px;
     overflow-y: auto;
-    background-color: #f7f9fc;
+    background-color: #f5f7fa;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
+  }
+  #bodhi-chat-messages::-webkit-scrollbar {
+    width: 6px;
+  }
+  #bodhi-chat-messages::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
   }
 
   /* Message Bubbles */
   .bodhi-msg {
-    max-width: 80%;
+    max-width: 82%;
     padding: 10px 14px;
-    border-radius: 14px;
+    border-radius: 16px;
     font-size: 14px;
-    line-height: 1.4;
+    line-height: 1.45;
     word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   }
   .bodhi-msg.bot {
     align-self: flex-start;
-    background-color: #e2e8f0;
-    color: #1a202c;
+    background-color: #ffffff;
+    color: #222933;
     border-bottom-left-radius: 4px;
   }
   .bodhi-msg.user {
     align-self: flex-end;
-    background-color: #2e7d32;
+    background: linear-gradient(135deg, var(--bodhi-green-light), var(--bodhi-green-dark));
     color: white;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 6px rgba(150, 171, 63, 0.3);
+  }
+  .bodhi-msg a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .bodhi-msg.bot a {
+    color: var(--bodhi-green-dark);
   }
 
   /* Chat Input Area */
   #bodhi-chat-input-area {
-    padding: 15px;
+    padding: 14px;
     background-color: #ffffff;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid #edf0f3;
     display: flex;
+    align-items: center;
     gap: 10px;
+    flex-shrink: 0;
   }
   #bodhi-chat-input {
     flex: 1;
-    padding: 10px 15px;
-    border: 1px solid #cbd5e0;
-    border-radius: 20px;
+    padding: 11px 16px;
+    border: 1.5px solid #e0e4e9;
+    background-color: #f5f7fa;
+    border-radius: 24px;
     outline: none;
     font-size: 14px;
-    transition: border-color 0.2s;
+    font-family: inherit;
+    transition: border-color 0.2s, background-color 0.2s;
   }
   #bodhi-chat-input:focus {
-    border-color: #2e7d32;
+    border-color: var(--bodhi-green-light);
+    background-color: #ffffff;
+  }
+  #bodhi-chat-input::placeholder {
+    color: #9aa3ae;
   }
   #bodhi-chat-send-btn {
-    background-color: #2e7d32;
+    background: linear-gradient(135deg, var(--bodhi-green-light), var(--bodhi-green-dark));
     color: white;
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: background-color 0.2s;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 3px 10px rgba(150, 171, 63, 0.35);
   }
   #bodhi-chat-send-btn:hover {
-    background-color: #1b5e20;
+    transform: scale(1.06);
+  }
+  #bodhi-chat-send-btn:active {
+    transform: scale(0.94);
   }
   #bodhi-chat-send-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     fill: currentColor;
     margin-left: -2px; /* Visual alignment for send icon */
   }
@@ -159,16 +254,17 @@
   .bodhi-typing {
     display: none;
     align-self: flex-start;
-    background-color: #e2e8f0;
-    padding: 8px 12px;
-    border-radius: 14px;
+    background-color: #ffffff;
+    padding: 12px 16px;
+    border-radius: 16px;
     border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   }
   .dot {
     display: inline-block;
     width: 6px;
     height: 6px;
-    background-color: #718096;
+    background-color: #9aa3ae;
     border-radius: 50%;
     margin: 0 2px;
     animation: typing 1.4s infinite ease-in-out both;
@@ -184,20 +280,24 @@
 <div id="bodhi-chat-container">
   <!-- The Floating Button -->
   <button id="bodhi-chat-toggle-btn">
-    <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+    <svg class="bodhi-icon-chat" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+    <svg class="bodhi-icon-close" viewBox="0 0 24 24"><path d="M18.3 5.71a1 1 0 00-1.41 0L12 10.59 7.11 5.7A1 1 0 105.7 7.11L10.59 12l-4.9 4.89a1 1 0 101.41 1.41L12 13.41l4.89 4.9a1 1 0 001.41-1.41L13.41 12l4.9-4.89a1 1 0 000-1.4z"/></svg>
   </button>
 
   <!-- The Chat Window -->
   <div id="bodhi-chat-window">
     <div id="bodhi-chat-header">
-      Bodhi Health Assistant
+      <div id="bodhi-chat-header-info">
+        <div id="bodhi-chat-header-title">Bodhi Health Assistant</div>
+        <div id="bodhi-chat-header-status"><span class="bodhi-status-dot"></span>Online now</div>
+      </div>
       <button id="bodhi-chat-close-btn">&times;</button>
     </div>
 
     <div id="bodhi-chat-messages">
       <!-- Default Greeting -->
       <div class="bodhi-msg bot">
-        Hello! Main Bodhi Health se baat kar raha hu. Main aaj aapki health aur wellness ke liye kaise help kar sakta hu?
+        Hi there! I'm the Bodhi Health assistant. How can I help you with your health and wellness today?
       </div>
 
       <!-- Typing Indicator (Hidden by default) -->
@@ -236,8 +336,10 @@
     function toggleChat() {
       if (chatWindow.style.display === 'flex') {
         chatWindow.style.display = 'none';
+        toggleBtn.classList.remove('open');
       } else {
         chatWindow.style.display = 'flex';
+        toggleBtn.classList.add('open');
         chatInput.focus();
       }
     }
