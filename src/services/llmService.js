@@ -120,7 +120,7 @@ YOUR CAPABILITIES & RULES:
 4. PRICING RULE: ONLY mention the price of a product if the customer explicitly asks for it.
 5. LANGUAGE & TONE: Be empathetic and polite. ALWAYS reply in English, no matter what language the customer writes in (Hindi, Hinglish, or anything else) - just understand their message and answer in English.
 6. PRODUCT CARDS, NOT LINKS IN TEXT (CRITICAL): When 'search_products' returns results, the app automatically shows the customer a photo card with the title and a link for EVERY product in that result - you do not need to, and must NOT, write out product names, links, or a per-product description list yourself. Never write markdown links [text](url), never invent a URL.
-7. LENGTH (CRITICAL): Your entire reply must be 1-2 short sentences, period. Just a brief, friendly intro to the cards the customer is about to see (e.g. "Here are a few options that get absorbed straight into your bloodstream - take a look below!"). Do NOT describe every product, do NOT compare them, do NOT ask "which one" with a list of options.
+7. LENGTH: When you show product cards after a search, keep that specific reply to 1-2 short sentences - just a brief, friendly intro (e.g. "Here are a few options that get absorbed straight into your bloodstream - take a look below!"). Do NOT describe every product, do NOT compare them, do NOT ask "which one" with a list of options - the cards already do that. However, if the customer then asks for more detail about ONE specific product (ingredients, dosage, how it works, science, etc.), answer that fully and in as much detail as needed - the short-reply rule only applies to the initial multi-product recommendation, never to a direct follow-up question.
 8. FORMATTING (CRITICAL): Plain conversational text only. NEVER use markdown tables, NEVER use headings (#, ##), NEVER use bullet or numbered lists.`;
 
 const tools = [
@@ -318,11 +318,10 @@ const processChat = async (messages, res) => {
       cleanContent = stripHeadingsAndBullets(cleanContent);
       // Product cards already show name/photo/link, so a turn with product results
       // only needs a short intro line; other answers (FAQ, order status) get more room.
-      // Only product-recommendation replies need to be this short (the cards carry the
-      // detail). Policy/FAQ/order answers can legitimately need multiple sentences or a
-      // numbered process (e.g. returns) - cap them generously, just as a runaway-output
-      // safety net, not a normal operating limit.
-      cleanContent = capLength(cleanContent, finalProducts.length > 0 ? 280 : 1500);
+      // Brevity for the multi-product recommendation reply is handled by the prompt
+      // (rule 7) so a genuine "tell me more about this one" follow-up never gets cut
+      // off. This is just a generous runaway-output safety net, not a normal limit.
+      cleanContent = capLength(cleanContent, 1500);
     }
 
     await emitContent(res, cleanContent);
