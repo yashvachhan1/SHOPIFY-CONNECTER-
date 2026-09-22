@@ -5,6 +5,75 @@ const logger = require('../utils/logger');
 
 const productUrl = (handle) => `https://${shopifyStore}/products/${handle}`;
 
+// Safety net: the model sometimes ignores the "no markdown tables" instruction
+// (comparison-style questions have a strong table prior). This detects any
+// "| a | b |" + "|---|---|" markdown table and rewrites it as short bold-title
+// lines, since the chat widget has no table renderer and would otherwise show
+// the raw pipe/dash syntax as broken text.
+function isTableRow(line) {
+  const trimmed = line.trim();
+  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.split('|').length > 2;
+}
+
+function splitTableRow(line) {
+  let trimmed = line.trim();
+  if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+  if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+  return trimmed.split('|').map((cell) => cell.trim());
+}
+
+function isTableSeparatorRow(line) {
+  if (!isTableRow(line)) return false;
+  const cells = splitTableRow(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-{2,}:?$/.test(cell));
+}
+
+function stripMarkdownTables(text) {
+  if (!text || !text.includes('|')) return text;
+
+  const lines = text.split('\n');
+  const output = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const nextLine = lines[i + 1];
+
+    if (isTableRow(line) && typeof nextLine === 'string' && isTableSeparatorRow(nextLine)) {
+      i += 2; // skip header + separator rows entirely, they add no value here
+      while (i < lines.length && isTableRow(lines[i])) {
+        const cells = splitTableRow(lines[i]).filter(Boolean);
+        if (cells.length > 0) {
+          // Strip any bold markers the model already put on the cell so we don't double them up
+          // into "****title****" when we re-wrap it below.
+          const [rawTitle, ...rest] = cells;
+          const title = rawTitle.replace(/\*\*/g, '').trim();
+          output.push(rest.length ? `**${title}** — ${rest.join(' — ')}` : `**${title}**`);
+          output.push('');
+        }
+        i += 1;
+      }
+      continue;
+    }
+
+    output.push(line);
+    i += 1;
+  }
+
+  return output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// Reveals the already-generated, already-cleaned reply to the client a word at a
+// time over the existing SSE "content" event, so the UI still feels like live
+// typing even though generation and sanitization both happen before this runs.
+async function emitContent(res, text) {
+  const tokens = text.split(/(\s+)/).filter((t) => t !== '');
+  for (const token of tokens) {
+    res.write(`data: ${JSON.stringify({ type: 'content', text: token })}\n\n`);
+    if (token.trim()) await new Promise((resolve) => setTimeout(resolve, 12));
+  }
+}
+
 // Initialize OpenAI client pointing to Groq
 const openai = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -66,7 +135,7 @@ const processChat = async (messages, res) => {
 
   let finalProducts = [];
   
-  async function runCompletionAndStream(currentMessages) {
+  async function runCompletion(currentMessages) {
     const stream = await openai.chat.completions.create({
       model: "openai/gpt-oss-120b",
       messages: currentMessages,
@@ -76,18 +145,15 @@ const processChat = async (messages, res) => {
       max_tokens: 1024
     });
 
+    // Deltas are only accumulated here, not written straight to the client - the
+    // full reply needs to pass through stripMarkdownTables() before anyone sees it.
     let fullContent = "";
-    let detectedLanguage = "en";
-    let isParsingTag = true;
-    let tagBuffer = "";
-    
     let isToolCall = false;
     let toolCalls = [];
 
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta;
-      
-      // Handle Tool Calls Streaming
+
       if (delta?.tool_calls) {
         isToolCall = true;
         for (const tc of delta.tool_calls) {
@@ -97,50 +163,20 @@ const processChat = async (messages, res) => {
           if (tc.function?.name) toolCalls[tc.index].function.name += tc.function.name;
           if (tc.function?.arguments) toolCalls[tc.index].function.arguments += tc.function.arguments;
         }
-        continue; // Don't stream tool call tokens to client
+        continue;
       }
 
-      // Handle Standard Content Streaming
       if (!isToolCall && delta?.content) {
-        let text = delta.content;
-        
-        // Intercept language tag without sending it to user
-        if (isParsingTag) {
-          tagBuffer += text;
-          if (tagBuffer.includes("[EN]")) {
-              detectedLanguage = "en";
-              isParsingTag = false;
-              text = tagBuffer.replace("[EN]", "").trimStart();
-              res.write(`data: ${JSON.stringify({ type: "language", language: "en" })}\n\n`);
-          } else if (tagBuffer.includes("[HI]")) {
-              detectedLanguage = "hi";
-              isParsingTag = false;
-              text = tagBuffer.replace("[HI]", "").trimStart();
-              res.write(`data: ${JSON.stringify({ type: "language", language: "hi" })}\n\n`);
-          } else if (tagBuffer.length > 10) {
-              // Assume no tag, just English
-              isParsingTag = false;
-              text = tagBuffer;
-              res.write(`data: ${JSON.stringify({ type: "language", language: "en" })}\n\n`);
-          } else {
-              // Keep buffering, do not emit yet
-              continue;
-          }
-        }
-
-        if (text) {
-          fullContent += text;
-          res.write(`data: ${JSON.stringify({ type: "content", text: text })}\n\n`);
-        }
+        fullContent += delta.content;
       }
     }
-    
-    return { isToolCall, toolCalls, fullContent, detectedLanguage };
+
+    return { isToolCall, toolCalls, fullContent };
   }
 
   try {
     // 1. Initial API call
-    let result = await runCompletionAndStream(messages);
+    let result = await runCompletion(messages);
 
     // 2. Handle Tool Calls if any
     if (result.isToolCall) {
@@ -244,24 +280,27 @@ const processChat = async (messages, res) => {
       }
 
       // 4. Run second completion to get actual response based on tool results
-      result = await runCompletionAndStream(messages);
+      result = await runCompletion(messages);
     }
-    
+
     // Clean up content
     let cleanContent = result.fullContent;
     if (cleanContent) {
       cleanContent = cleanContent.replace(/<think>[\s\S]*?<\/think>\n*/g, '').trim();
+      cleanContent = stripMarkdownTables(cleanContent);
     }
 
+    await emitContent(res, cleanContent);
+
     messages.push({ role: 'assistant', content: cleanContent });
-    
+
     // Filter out tool calls to save tokens on subsequent turns
     const filteredMessages = messages.filter(m => m.role !== 'tool' && !m.tool_calls);
 
     // Send final metadata event
     res.write(`data: ${JSON.stringify({
       type: "metadata",
-      language: result.detectedLanguage,
+      language: "en",
       products: finalProducts,
       messages: filteredMessages
     })}\n\n`);
