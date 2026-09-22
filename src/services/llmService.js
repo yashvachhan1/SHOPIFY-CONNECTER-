@@ -318,7 +318,11 @@ const processChat = async (messages, res) => {
       cleanContent = stripHeadingsAndBullets(cleanContent);
       // Product cards already show name/photo/link, so a turn with product results
       // only needs a short intro line; other answers (FAQ, order status) get more room.
-      cleanContent = capLength(cleanContent, finalProducts.length > 0 ? 280 : 600);
+      // Only product-recommendation replies need to be this short (the cards carry the
+      // detail). Policy/FAQ/order answers can legitimately need multiple sentences or a
+      // numbered process (e.g. returns) - cap them generously, just as a runaway-output
+      // safety net, not a normal operating limit.
+      cleanContent = capLength(cleanContent, finalProducts.length > 0 ? 280 : 1500);
     }
 
     await emitContent(res, cleanContent);
