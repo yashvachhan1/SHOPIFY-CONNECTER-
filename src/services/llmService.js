@@ -68,9 +68,17 @@ function stripHeadingsAndBullets(text) {
     .split('\n')
     .map((line) => line
       .replace(/^#{1,6}\s+/, '')
-      .replace(/^[-*]\s+/, '')
+      .replace(/^[-*•]\s+/, '')
       .replace(/^\d+\.\s+/, ''))
     .join('\n');
+}
+
+// The model sometimes writes literal "<br>" tags instead of a real newline (seen after
+// the "no bullet lists" rule pushed it toward "• item <br>• item" instead). The widget
+// escapes all text before rendering, so a literal tag would otherwise show up on screen
+// as the visible text "<br>" rather than an actual line break.
+function normalizeLiteralHtml(text) {
+  return text.replace(/<br\s*\/?>/gi, '\n');
 }
 
 // Extra defense-in-depth: the model still sometimes ignores the length instruction,
@@ -314,10 +322,9 @@ const processChat = async (messages, res) => {
     let cleanContent = result.fullContent;
     if (cleanContent) {
       cleanContent = cleanContent.replace(/<think>[\s\S]*?<\/think>\n*/g, '').trim();
+      cleanContent = normalizeLiteralHtml(cleanContent);
       cleanContent = stripMarkdownTables(cleanContent);
       cleanContent = stripHeadingsAndBullets(cleanContent);
-      // Product cards already show name/photo/link, so a turn with product results
-      // only needs a short intro line; other answers (FAQ, order status) get more room.
       // Brevity for the multi-product recommendation reply is handled by the prompt
       // (rule 7) so a genuine "tell me more about this one" follow-up never gets cut
       // off. This is just a generous runaway-output safety net, not a normal limit.
