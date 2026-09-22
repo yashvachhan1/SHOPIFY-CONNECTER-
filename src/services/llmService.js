@@ -63,6 +63,34 @@ function stripMarkdownTables(text) {
   return output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+function stripHeadingsAndBullets(text) {
+  return text
+    .split('\n')
+    .map((line) => line
+      .replace(/^#{1,6}\s+/, '')
+      .replace(/^[-*]\s+/, '')
+      .replace(/^\d+\.\s+/, ''))
+    .join('\n');
+}
+
+// Extra defense-in-depth: the model still sometimes ignores the length instruction,
+// especially when it insists on describing every product itself instead of trusting
+// the product cards. Trims to the nearest sentence boundary instead of hard-cutting
+// mid-word/mid-sentence.
+function capLength(text, maxChars) {
+  if (!text || text.length <= maxChars) return text;
+  const window = text.slice(0, maxChars);
+  const lastBoundary = Math.max(
+    window.lastIndexOf('. '),
+    window.lastIndexOf('! '),
+    window.lastIndexOf('? '),
+  );
+  if (lastBoundary > maxChars * 0.3) {
+    return window.slice(0, lastBoundary + 1).trim();
+  }
+  return `${window.trim()}…`;
+}
+
 // Reveals the already-generated, already-cleaned reply to the client a word at a
 // time over the existing SSE "content" event, so the UI still feels like live
 // typing even though generation and sanitization both happen before this runs.
@@ -88,13 +116,12 @@ Do NOT introduce yourself (e.g., do not say "Hello, I am from Bodhi Health"). Th
 YOUR CAPABILITIES & RULES:
 1. You have access to the Bodhi Health Shopify store via your tools. You can search for products, get product details, create orders, and check order statuses.
 2. PRODUCT RECOMMENDATIONS: If a user mentions a health issue, symptom, or health goal, you MUST use the 'search_products' tool to find relevant supplements in our store.
-3. CONFIDENT ASSISTANCE: If you find a matching product, confidently recommend it as a solution provided by Bodhi Health. Explain its benefits briefly.
-4. SALES FOCUS: Act as a helpful representative. If the user likes a product, ask if they would like to place an order.
-5. PRICING RULE: ONLY mention the price of a product if the customer explicitly asks for it.
-6. CONCISE RESPONSES (CRITICAL): Keep your answers VERY SHORT (maximum 2-3 sentences per product). Do NOT write long paragraphs.
-7. LANGUAGE & TONE: Be empathetic and polite. ALWAYS reply in English, no matter what language the customer writes in (Hindi, Hinglish, or anything else) - just understand their message and answer in English.
-8. PRODUCT LINKS: Whenever you recommend or mention a specific product that has a "url" field in the tool results, include it as a markdown link in this exact format: [Product Title](url). Never invent a URL - only use the "url" value given to you by the tool.
-9. FORMATTING (CRITICAL): This is a narrow chat widget, not a document. NEVER use markdown tables (no "|" pipe characters, no "---" separator rows) - they render as broken text here. NEVER use headings (#), and never use numbered/bulleted lists with more than 3 items. When listing multiple products, pick at most the top 2-3 matches and write each as one short line: **[Product Title](url)** — one-sentence benefit. Nothing else.`;
+3. SALES FOCUS: Act as a helpful representative. If the user likes a product, ask if they would like to place an order.
+4. PRICING RULE: ONLY mention the price of a product if the customer explicitly asks for it.
+5. LANGUAGE & TONE: Be empathetic and polite. ALWAYS reply in English, no matter what language the customer writes in (Hindi, Hinglish, or anything else) - just understand their message and answer in English.
+6. PRODUCT CARDS, NOT LINKS IN TEXT (CRITICAL): When 'search_products' returns results, the app automatically shows the customer a photo card with the title and a link for EVERY product in that result - you do not need to, and must NOT, write out product names, links, or a per-product description list yourself. Never write markdown links [text](url), never invent a URL.
+7. LENGTH (CRITICAL): Your entire reply must be 1-2 short sentences, period. Just a brief, friendly intro to the cards the customer is about to see (e.g. "Here are a few options that get absorbed straight into your bloodstream - take a look below!"). Do NOT describe every product, do NOT compare them, do NOT ask "which one" with a list of options.
+8. FORMATTING (CRITICAL): Plain conversational text only. NEVER use markdown tables, NEVER use headings (#, ##), NEVER use bullet or numbered lists.`;
 
 const tools = [
   {
@@ -288,6 +315,10 @@ const processChat = async (messages, res) => {
     if (cleanContent) {
       cleanContent = cleanContent.replace(/<think>[\s\S]*?<\/think>\n*/g, '').trim();
       cleanContent = stripMarkdownTables(cleanContent);
+      cleanContent = stripHeadingsAndBullets(cleanContent);
+      // Product cards already show name/photo/link, so a turn with product results
+      // only needs a short intro line; other answers (FAQ, order status) get more room.
+      cleanContent = capLength(cleanContent, finalProducts.length > 0 ? 280 : 600);
     }
 
     await emitContent(res, cleanContent);

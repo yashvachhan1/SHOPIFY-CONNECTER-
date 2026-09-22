@@ -353,6 +353,53 @@
     margin-left: -2px; /* Visual alignment for send icon */
   }
 
+  /* Product Cards */
+  .bodhi-product-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    align-self: flex-start;
+    max-width: 82%;
+    background: #ffffff;
+    border: 1.5px solid #e5e8ec;
+    border-radius: 12px;
+    padding: 8px;
+    box-sizing: border-box !important;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .bodhi-product-card:hover {
+    border-color: var(--bodhi-green);
+    box-shadow: 0 4px 12px rgba(150, 171, 63, 0.25);
+  }
+  .bodhi-product-card img {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #f0f2f5;
+  }
+  .bodhi-product-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .bodhi-product-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1f2430;
+    line-height: 1.3;
+  }
+  .bodhi-product-card-cta {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--bodhi-green-dark);
+  }
+
   /* Loading Indicator */
   .bodhi-typing {
     display: none;
@@ -577,6 +624,9 @@
                   if (parsed.error) {
                     botMsgDiv.innerText = "Error: " + parsed.error;
                   }
+                  if (parsed.type === 'metadata' && Array.isArray(parsed.products)) {
+                    addProductCards(parsed.products);
+                  }
                 } catch (e) {
                   console.error("Parse error on chunk", e);
                 }
@@ -598,6 +648,42 @@
       msgDiv.className = `bodhi-msg ${sender}`;
       messagesContainer.insertBefore(msgDiv, typingIndicator);
       return msgDiv;
+    }
+
+    function addProductCards(products) {
+      products.slice(0, 3).forEach(function(product) {
+        if (!product || !product.url) return;
+
+        const link = document.createElement('a');
+        link.className = 'bodhi-product-card';
+        link.href = product.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+
+        if (product.featured_image) {
+          const img = document.createElement('img');
+          img.src = product.featured_image;
+          img.alt = product.title || '';
+          link.appendChild(img);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'bodhi-product-card-info';
+
+        const title = document.createElement('div');
+        title.className = 'bodhi-product-card-title';
+        title.textContent = product.title || 'View product';
+        info.appendChild(title);
+
+        const cta = document.createElement('div');
+        cta.className = 'bodhi-product-card-cta';
+        cta.textContent = 'View product →';
+        info.appendChild(cta);
+
+        link.appendChild(info);
+        messagesContainer.insertBefore(link, typingIndicator);
+      });
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
     function appendMessage(text, sender) {

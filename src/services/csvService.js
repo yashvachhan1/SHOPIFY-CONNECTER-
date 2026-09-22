@@ -63,11 +63,12 @@ const searchLocalProducts = async (query) => {
         return { product, score };
     });
     
-    // Sort by score descending and take top 5
+    // Sort by score descending and take top 3 - keeps the chat reply and product
+    // cards short instead of dumping the whole catalog at the customer.
     const topMatches = scoredProducts
         .filter(p => p.score > 0)
         .sort((a, b) => b.score - a.score)
-        .slice(0, 5)
+        .slice(0, 3)
         .map(p => {
             const prod = p.product;
             // Clean up HTML tags from Body if short description is missing
