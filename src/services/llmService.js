@@ -1,6 +1,9 @@
 const { OpenAI } = require('openai');
 const { queryShopify } = require('./shopifyService');
+const { shopifyStore } = require('../config/env');
 const logger = require('../utils/logger');
+
+const productUrl = (handle) => `https://${shopifyStore}/products/${handle}`;
 
 // Initialize OpenAI client pointing to Groq
 const openai = new OpenAI({
@@ -20,7 +23,8 @@ YOUR CAPABILITIES & RULES:
 4. SALES FOCUS: Act as a helpful representative. If the user likes a product, ask if they would like to place an order.
 5. PRICING RULE: ONLY mention the price of a product if the customer explicitly asks for it.
 6. CONCISE RESPONSES (CRITICAL): Keep your answers VERY SHORT (maximum 2-3 sentences). Do NOT write long paragraphs or long bulleted lists.
-7. LANGUAGE & TONE: Be empathetic and polite. Reply in the same language the user speaks to you (e.g., if they speak Hinglish, reply in Hinglish. If they speak English, reply in English).`;
+7. LANGUAGE & TONE: Be empathetic and polite. ALWAYS reply in English, no matter what language the customer writes in (Hindi, Hinglish, or anything else) - just understand their message and answer in English.
+8. PRODUCT LINKS: Whenever you recommend or mention a specific product that has a "url" field in the tool results, include it as a markdown link in this exact format: [Product Title](url). Never invent a URL - only use the "url" value given to you by the tool.`;
 
 const tools = [
   {
@@ -170,7 +174,8 @@ const processChat = async (messages, res) => {
                     description: local.description,
                     activeIngredients: local.activeIngredients,
                     price: "N/A", // Use N/A to keep responses purely conversational without fetching live prices
-                    featured_image: local.image
+                    featured_image: local.image,
+                    url: productUrl(local.handle)
                 }));
             } else {
                 logger.info(`No local matches found in CSV for: "${searchQuery}"`);
@@ -193,7 +198,7 @@ const processChat = async (messages, res) => {
           const productHandle = args.product_handle || "";
 
           logger.info(`LLM requested live price check for: "${productHandle}"`);
-          let liveResult = { handle: productHandle, price: "Not found", inventory: 0 };
+          let liveResult = { handle: productHandle, price: "Not found", inventory: 0, url: productUrl(productHandle) };
           
           try {
             const graphqlQuery = `
@@ -220,7 +225,8 @@ const processChat = async (messages, res) => {
                     handle: productHandle,
                     price: variant.price,
                     compareAtPrice: variant.compareAtPrice,
-                    inventory: variant.inventoryQuantity
+                    inventory: variant.inventoryQuantity,
+                    url: productUrl(productHandle)
                 };
             }
           } catch (err) {

@@ -308,8 +308,10 @@
                   if (parsed.text) {
                     fullBotReply += parsed.text;
                     // Escape first so any HTML/script in the LLM reply can't execute,
-                    // then apply our own minimal markdown (bold + line breaks) on top.
+                    // then apply our own minimal markdown (links + bold + line breaks) on top.
+                    // Link URLs are restricted to http(s) only, so an injected javascript: URI can't run.
                     let htmlReply = escapeHtml(fullBotReply)
+                      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
                       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                       .replace(/\n/g, '<br>');
                     botMsgDiv.innerHTML = htmlReply;
