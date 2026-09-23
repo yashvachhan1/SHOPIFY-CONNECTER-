@@ -150,7 +150,7 @@ const tools = [
     type: "function",
     function: {
       name: "check_live_price",
-      description: "ONLY use this if the user explicitly asks for the price or quantity/stock of a product. Fetches live data from Shopify.",
+      description: "Use this when the customer asks about price, cost, which option is cheapest, or stock. Pass the 'handle' value from a search_products result. Call it once per product you need a price for. Fetches live data from Shopify.",
       parameters: {
         type: "object",
         properties: {
@@ -162,11 +162,17 @@ const tools = [
   }
 ];
 
+const MAX_TOOL_ROUNDS = 4;
+
 const processChat = async (messages, res) => {
-  // Ensure system prompt is always at the beginning
-  if (!messages || messages.length === 0 || messages[0].role !== 'system') {
-    messages.unshift({ role: 'system', content: SYSTEM_PROMPT });
-  }
+  // The client sends its own conversation history, which used to include a system
+  // message of its own - that silently suppressed every rule below (formatting,
+  // length, English-only, product cards), because this only added SYSTEM_PROMPT when
+  // no system message was present. Any caller-supplied system message is dropped so
+  // the store's real instructions always apply and can't be overridden from outside.
+  const history = (Array.isArray(messages) ? messages : []).filter((m) => m && m.role !== 'system');
+  messages.length = 0;
+  messages.push({ role: 'system', content: SYSTEM_PROMPT }, ...history);
 
   let finalProducts = [];
   
@@ -213,10 +219,15 @@ const processChat = async (messages, res) => {
     // 1. Initial API call
     let result = await runCompletion(messages);
 
-    // 2. Handle Tool Calls if any
-    if (result.isToolCall) {
+    // 2. Keep resolving tool calls until the model actually answers. A single round
+    // wasn't enough: asking e.g. "which is cheapest" makes it call search_products and
+    // THEN check_live_price, and the second round's reply was being sent to the customer
+    // as an empty message bubble.
+    let round = 0;
+    while (result.isToolCall && round < MAX_TOOL_ROUNDS) {
+      round += 1;
       const compactToolCalls = result.toolCalls.filter(Boolean); // Remove nulls
-      
+
       // Add assistant's tool call request to history
       messages.push({
         role: 'assistant',
@@ -242,6 +253,7 @@ const processChat = async (messages, res) => {
             if (localMatches.length > 0) {
                 finalProducts = localMatches.map(local => ({
                     id: local.handle,
+                    handle: local.handle, // named so the model knows what to pass to check_live_price
                     title: local.title,
                     description: local.description,
                     activeIngredients: local.activeIngredients,
@@ -314,7 +326,8 @@ const processChat = async (messages, res) => {
         }
       }
 
-      // 4. Run second completion to get actual response based on tool results
+      // Ask again now that the tool results are in history - this either produces the
+      // final answer or another tool call, which the loop handles.
       result = await runCompletion(messages);
     }
 
@@ -329,6 +342,14 @@ const processChat = async (messages, res) => {
       // (rule 7) so a genuine "tell me more about this one" follow-up never gets cut
       // off. This is just a generous runaway-output safety net, not a normal limit.
       cleanContent = capLength(cleanContent, 1500);
+    }
+
+    // Never send an empty bubble - if the model ran out of tool rounds or returned
+    // nothing usable, say something rather than showing the customer a blank message.
+    if (!cleanContent || !cleanContent.trim()) {
+      cleanContent = finalProducts.length > 0
+        ? 'Here are the options I found - take a look below.'
+        : "Sorry, I couldn't put that together just now. Could you rephrase your question?";
     }
 
     await emitContent(res, cleanContent);

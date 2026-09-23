@@ -492,9 +492,9 @@
     const API_URL = 'http://localhost:3000/api/chat';
     const API_TOKEN = 'super_secret_elevenlabs_token_123'; // Make sure this matches your .env API_SECRET
 
-    let chatHistory = [
-      { role: "system", content: "You are a helpful assistant for Bodhi Health." }
-    ];
+    // No system message here on purpose - the server owns the assistant's instructions.
+    let chatHistory = [];
+    const shownProductUrls = {};
 
     function hideTeaser() {
       teaser.classList.remove('show');
@@ -635,7 +635,13 @@
           }
         }
 
-        chatHistory.push({ role: "assistant", content: fullBotReply });
+        // A reply that never produced text would otherwise leave a blank bubble sitting
+        // in the conversation, so drop it and keep it out of the history we send back.
+        if (fullBotReply.trim()) {
+          chatHistory.push({ role: "assistant", content: fullBotReply });
+        } else {
+          botMsgDiv.remove();
+        }
 
       } catch (error) {
         typingIndicator.style.display = 'none';
@@ -652,7 +658,10 @@
 
     function addProductCards(products) {
       products.slice(0, 3).forEach(function(product) {
-        if (!product || !product.url) return;
+        // Follow-up questions often re-run the same search, so skip anything already
+        // on screen instead of stacking duplicate cards down the conversation.
+        if (!product || !product.url || shownProductUrls[product.url]) return;
+        shownProductUrls[product.url] = true;
 
         const link = document.createElement('a');
         link.className = 'bodhi-product-card';
@@ -677,7 +686,9 @@
 
         const cta = document.createElement('div');
         cta.className = 'bodhi-product-card-cta';
-        cta.textContent = 'View product →';
+        // Built from a char code so the arrow can't turn into mojibake if the theme
+        // ever serves this page as anything other than UTF-8.
+        cta.textContent = 'View product ' + String.fromCharCode(8594);
         info.appendChild(cta);
 
         link.appendChild(info);
