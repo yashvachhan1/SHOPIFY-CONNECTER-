@@ -110,10 +110,14 @@ async function emitContent(res, text) {
   }
 }
 
-// Initialize OpenAI client pointing to Groq
+// Initialize OpenAI client pointing to Groq. The timeout/retry are explicit so a
+// rate-limited or stalled call fails in a few seconds with a friendly message instead
+// of leaving the customer watching the typing dots for half a minute.
 const openai = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
-  baseURL: 'https://api.groq.com/openai/v1'
+  baseURL: 'https://api.groq.com/openai/v1',
+  timeout: 25000,
+  maxRetries: 1
 });
 
 const SYSTEM_PROMPT = `You are a friendly, knowledgeable, and professional virtual assistant for "Bodhi Health Inc.", a premium health supplements and wellness brand. You speak in a helpful and polite tone.
@@ -162,7 +166,71 @@ const tools = [
   }
 ];
 
-const MAX_TOOL_ROUNDS = 4;
+const MAX_TOOL_ROUNDS = 3;
+
+async function runProductSearch(query) {
+  logger.info(`LLM requested product search for: "${query}"`);
+  try {
+    const { searchLocalProducts } = require('./csvService');
+    const localMatches = await searchLocalProducts(query);
+
+    if (localMatches.length === 0) {
+      logger.info(`No local matches found in CSV for: "${query}"`);
+      return [];
+    }
+
+    return localMatches.map((local) => ({
+      id: local.handle,
+      handle: local.handle, // named so the model knows what to pass to check_live_price
+      title: local.title,
+      description: local.description,
+      activeIngredients: local.activeIngredients,
+      price: 'N/A', // prices come from check_live_price so the CSV can't go stale on us
+      featured_image: local.image,
+      url: productUrl(local.handle),
+    }));
+  } catch (err) {
+    logger.error(`Product search failed for "${query}": ${err.message}`);
+    return [];
+  }
+}
+
+async function fetchLivePrice(handle) {
+  logger.info(`LLM requested live price check for: "${handle}"`);
+  const fallback = { handle, price: 'Not found', inventory: 0, url: productUrl(handle) };
+
+  try {
+    const graphqlQuery = `
+      query FetchLiveDetails($query: String!) {
+        products(first: 1, query: $query) {
+          edges {
+            node {
+              handle
+              variants(first: 1) {
+                edges { node { price compareAtPrice inventoryQuantity } }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const liveData = await queryShopify(graphqlQuery, { query: `handle:${handle}` });
+    const variant = liveData?.products?.edges?.[0]?.node?.variants?.edges?.[0]?.node;
+    if (!variant) return fallback;
+
+    return {
+      handle,
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice,
+      inventory: variant.inventoryQuantity,
+      url: productUrl(handle),
+    };
+  } catch (err) {
+    logger.error(`Live price check failed for "${handle}": ${err.message}`);
+    return fallback;
+  }
+}
 
 const processChat = async (messages, res) => {
   // The client sends its own conversation history, which used to include a system
@@ -235,96 +303,35 @@ const processChat = async (messages, res) => {
         tool_calls: compactToolCalls
       });
 
-      for (const toolCall of compactToolCalls) {
-        if (toolCall.function.name === "search_products") {
-          let args = {};
-          try { args = JSON.parse(toolCall.function.arguments); } catch(e){}
-          const searchQuery = args.query || "";
+      // Every tool_call_id MUST get a matching tool message back, including ones we
+      // don't implement - otherwise the next request is rejected as malformed and the
+      // whole turn fails with "Failed to process chat". Run them in parallel so a reply
+      // needing several price lookups doesn't take one Shopify round-trip at a time.
+      const toolResults = await Promise.all(compactToolCalls.map(async (toolCall) => {
+        const name = toolCall.function?.name;
+        let args = {};
+        try { args = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { /* model sent invalid JSON */ }
 
-          logger.info(`LLM requested product search for: "${searchQuery}"`);
-          
-          finalProducts = [];
-          
-          try {
-            // 1. Search Local CSV Database Only (for max speed)
-            const { searchLocalProducts } = require('./csvService');
-            const localMatches = await searchLocalProducts(searchQuery);
-            
-            if (localMatches.length > 0) {
-                finalProducts = localMatches.map(local => ({
-                    id: local.handle,
-                    handle: local.handle, // named so the model knows what to pass to check_live_price
-                    title: local.title,
-                    description: local.description,
-                    activeIngredients: local.activeIngredients,
-                    price: "N/A", // Use N/A to keep responses purely conversational without fetching live prices
-                    featured_image: local.image,
-                    url: productUrl(local.handle)
-                }));
-            } else {
-                logger.info(`No local matches found in CSV for: "${searchQuery}"`);
-            }
-            
-          } catch (err) {
-            logger.error('Search error', err);
-          }
-
-          // 3. Send result back to Groq
-          messages.push({
-            tool_call_id: toolCall.id,
-            role: "tool",
-            name: "search_products",
-            content: JSON.stringify(finalProducts),
-          });
-        } else if (toolCall.function.name === "check_live_price") {
-          let args = {};
-          try { args = JSON.parse(toolCall.function.arguments); } catch(e){}
-          const productHandle = args.product_handle || "";
-
-          logger.info(`LLM requested live price check for: "${productHandle}"`);
-          let liveResult = { handle: productHandle, price: "Not found", inventory: 0, url: productUrl(productHandle) };
-          
-          try {
-            const graphqlQuery = `
-              query FetchLiveDetails($query: String!) {
-                products(first: 1, query: $query) {
-                  edges {
-                    node {
-                      handle
-                      variants(first: 1) {
-                        edges { node { price compareAtPrice inventoryQuantity } }
-                      }
-                    }
-                  }
-                }
-              }
-            `;
-            
-            const liveData = await queryShopify(graphqlQuery, { query: `handle:${productHandle}` });
-            const liveNode = liveData?.products?.edges?.[0]?.node;
-            const variant = liveNode?.variants?.edges?.[0]?.node;
-            
-            if (variant) {
-                liveResult = {
-                    handle: productHandle,
-                    price: variant.price,
-                    compareAtPrice: variant.compareAtPrice,
-                    inventory: variant.inventoryQuantity,
-                    url: productUrl(productHandle)
-                };
-            }
-          } catch (err) {
-            logger.error('Live price check error', err);
-          }
-
-          messages.push({
-            tool_call_id: toolCall.id,
-            role: "tool",
-            name: "check_live_price",
-            content: JSON.stringify(liveResult),
-          });
+        let content;
+        if (name === 'search_products') {
+          content = JSON.stringify(await runProductSearch(args.query || ''));
+        } else if (name === 'check_live_price') {
+          content = JSON.stringify(await fetchLivePrice(args.product_handle || ''));
+        } else {
+          logger.warn(`LLM requested unknown tool: "${name}"`);
+          content = JSON.stringify({ error: `Unknown tool "${name}". Use search_products or check_live_price.` });
         }
+
+        return { tool_call_id: toolCall.id, role: 'tool', name: name || 'unknown', content };
+      }));
+
+      // search_products results drive the product cards the customer sees.
+      const searchResult = toolResults.find((r) => r.name === 'search_products');
+      if (searchResult) {
+        try { finalProducts = JSON.parse(searchResult.content); } catch (e) { finalProducts = []; }
       }
+
+      messages.push(...toolResults);
 
       // Ask again now that the tool results are in history - this either produces the
       // final answer or another tool call, which the loop handles.
@@ -368,8 +375,12 @@ const processChat = async (messages, res) => {
     })}\n\n`);
 
   } catch (error) {
-    logger.error('Error during chat processing', error);
-    res.write(`data: ${JSON.stringify({ type: "error", error: "Failed to process chat" })}\n\n`);
+    // Log the message/stack explicitly - passing the Error object as winston metadata
+    // swallowed it, which made these failures impossible to diagnose from Render logs.
+    logger.error(`Chat processing failed: ${error.message}`, { stack: error.stack });
+    // Send it as normal content, not an error event - the customer should read a plain
+    // apology, not "Error: Failed to process chat" in the middle of the conversation.
+    await emitContent(res, "Sorry, I'm having trouble reaching our system right now. Please try again in a moment.");
   }
 };
 
