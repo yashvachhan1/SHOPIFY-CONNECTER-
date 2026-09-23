@@ -180,7 +180,7 @@ const SYSTEM_PROMPT = `You are the assistant for "Bodhi Health Inc.", a premium 
 
 RULES:
 1. Health issue, symptom or goal mentioned? Use search_products. Asked about price/cost/cheapest/stock? Use check_live_price.
-1b. Price questions in any spelling ("cheapest", "kitne ka", "sb she km price ka", "sasta", "cost") = search_products already gives you every price, so compare them and name the cheapest with its price yourself. Never ask the customer to pick a product first, never say you cannot check prices.
+1b. Price questions in any spelling ("cheapest", "kitne ka", "sb she km price ka", "sasta", "cost") = search_products already gives you every price, so compare them and name the cheapest with its price yourself. Never ask the customer to pick a product first. If a price is "Not listed" or "Not found", say the price isn't shown here and point them to the product card - never quote it as 0.
 2. Reply in English always, whatever language the customer writes in.
 3. Only mention price if asked. If they like something, offer to place an order.
 4. After search_products, the app shows the customer a photo card with the title and link for every result. Never write product names, links or a per-product list yourself, never write markdown links.
@@ -307,9 +307,13 @@ async function fetchLivePrice(handle) {
     const variant = liveData?.products?.edges?.[0]?.node?.variants?.edges?.[0]?.node;
     if (!variant) return fallback;
 
+    // Some products in the store have no price set, which comes back as "0.00". Quoting
+    // "$0.00" to a customer reads as broken, so it's reported as unlisted instead.
+    const priced = Number(variant.price) > 0;
+
     return {
       handle,
-      price: variant.price,
+      price: priced ? variant.price : 'Not listed',
       compareAtPrice: variant.compareAtPrice,
       inventory: variant.inventoryQuantity,
       url: productUrl(handle),
