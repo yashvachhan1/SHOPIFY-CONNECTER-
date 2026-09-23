@@ -180,7 +180,7 @@ const SYSTEM_PROMPT = `You are the assistant for "Bodhi Health Inc.", a premium 
 
 RULES:
 1. Health issue, symptom or goal mentioned? Use search_products. Asked about price/cost/cheapest/stock? Use check_live_price.
-1b. "Which is cheapest/what do they cost" = call check_live_price ONCE with every handle from the last search, then answer with the comparison yourself. Never ask the customer to pick a product before you look prices up.
+1b. Price questions in any spelling ("cheapest", "kitne ka", "sb she km price ka", "sasta", "cost") = search_products already gives you every price, so compare them and name the cheapest with its price yourself. Never ask the customer to pick a product first, never say you cannot check prices.
 2. Reply in English always, whatever language the customer writes in.
 3. Only mention price if asked. If they like something, offer to place an order.
 4. After search_products, the app shows the customer a photo card with the title and link for every result. Never write product names, links or a per-product list yourself, never write markdown links.
@@ -193,7 +193,7 @@ const tools = [
     type: "function",
     function: {
       name: "search_products",
-      description: "Find products. Fix spelling (bloodstromm -> bloodstream) and translate Hindi/Hinglish to English keywords first. No price or stock data.",
+      description: "Find products. Fix spelling (bloodstromm -> bloodstream) and translate Hindi/Hinglish to English keywords first. Returns each product with its live price and stock.",
       parameters: {
         type: "object",
         properties: {
@@ -248,16 +248,27 @@ async function runProductSearch(query) {
       return [];
     }
 
-    return localMatches.map((local) => ({
-      id: local.handle,
-      handle: local.handle, // named so the model knows what to pass to check_live_price
-      title: local.title,
-      description: clip(local.description, 180),
-      activeIngredients: clip(local.activeIngredients, 100),
-      price: 'N/A', // prices come from check_live_price so the CSV can't go stale on us
-      featured_image: local.image,
-      url: productUrl(local.handle),
-    }));
+    // Prices come with the search results (fetched in parallel) rather than needing a
+    // second tool call. "sabse kam price ka" used to fail because the model didn't
+    // recognise misspelled Hinglish as a price question and never looked prices up -
+    // now it always has the numbers in hand and can just compare them.
+    const prices = await fetchLivePrices(localMatches.map((local) => local.handle));
+    const priceByHandle = Object.fromEntries(prices.map((p) => [p.handle, p]));
+
+    return localMatches.map((local) => {
+      const live = priceByHandle[local.handle] || {};
+      return {
+        id: local.handle,
+        handle: local.handle,
+        title: local.title,
+        description: clip(local.description, 180),
+        activeIngredients: clip(local.activeIngredients, 100),
+        price: live.price ?? 'Not found',
+        inventory: live.inventory ?? 0,
+        featured_image: local.image,
+        url: productUrl(local.handle),
+      };
+    });
   } catch (err) {
     logger.error(`Product search failed for "${query}": ${err.message}`);
     return [];
