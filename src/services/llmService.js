@@ -180,10 +180,11 @@ const SYSTEM_PROMPT = `You are the assistant for "Bodhi Health Inc.", a premium 
 
 RULES:
 1. Health issue, symptom or goal mentioned? Use search_products. Asked about price/cost/cheapest/stock? Use check_live_price.
+1b. "Which is cheapest/what do they cost" = call check_live_price ONCE with every handle from the last search, then answer with the comparison yourself. Never ask the customer to pick a product before you look prices up.
 2. Reply in English always, whatever language the customer writes in.
 3. Only mention price if asked. If they like something, offer to place an order.
 4. After search_products, the app shows the customer a photo card with the title and link for every result. Never write product names, links or a per-product list yourself, never write markdown links.
-5. So after a search, reply in 1-2 short sentences only - a friendly intro to the cards ("Here are a few options - take a look below!"). One result? Say "here's the one we have". Don't describe or compare the products; the cards do that.
+5. So after a search, reply in 1-2 short sentences that ANSWER what they actually asked - say yes/no, or why these help ("Yes - these dissolve under the tongue so it absorbs straight into the bloodstream."). Never reply with a content-free line like "Here are a few options"; never list or describe the products one by one, the cards do that.
 6. Exception: if they then ask about ONE product (ingredients, dosage, how it works), answer fully and in as much detail as needed. Rule 5 is only for the initial multi-product reply.
 7. Plain conversational text only. Never tables, headings (#), bullet or numbered lists.`;
 
@@ -206,13 +207,17 @@ const tools = [
     type: "function",
     function: {
       name: "check_live_price",
-      description: "Live price and stock from Shopify. Pass the 'handle' from a search_products result; call once per product you need a price for.",
+      description: "Live price and stock from Shopify. Pass every handle you need in one call - e.g. all handles from the last search when asked which is cheapest.",
       parameters: {
         type: "object",
         properties: {
-          product_handle: { type: "string", description: "The handle/ID of the product to check" }
+          product_handles: {
+            type: "array",
+            items: { type: "string" },
+            description: "Handles from search_products results"
+          }
         },
-        required: ["product_handle"]
+        required: ["product_handles"]
       }
     }
   }
@@ -259,8 +264,16 @@ async function runProductSearch(query) {
   }
 }
 
+// Takes every handle at once: "which is cheapest" needs all three products priced, and
+// one-at-a-time lookups used up the tool rounds before the model ever wrote an answer.
+async function fetchLivePrices(handles) {
+  const unique = [...new Set(handles.filter(Boolean))].slice(0, 5);
+  if (unique.length === 0) return [];
+  logger.info(`LLM requested live prices for: ${unique.join(', ')}`);
+  return Promise.all(unique.map(fetchLivePrice));
+}
+
 async function fetchLivePrice(handle) {
-  logger.info(`LLM requested live price check for: "${handle}"`);
   const fallback = { handle, price: 'Not found', inventory: 0, url: productUrl(handle) };
 
   try {
@@ -387,7 +400,11 @@ const processChat = async (messages, res) => {
         if (name === 'search_products') {
           content = JSON.stringify(await runProductSearch(args.query || ''));
         } else if (name === 'check_live_price') {
-          content = JSON.stringify(await fetchLivePrice(args.product_handle || ''));
+          // Accept the single-handle shape too, in case the model falls back to it.
+          const handles = Array.isArray(args.product_handles)
+            ? args.product_handles
+            : [args.product_handles || args.product_handle].filter(Boolean);
+          content = JSON.stringify(await fetchLivePrices(handles));
         } else {
           logger.warn(`LLM requested unknown tool: "${name}"`);
           content = JSON.stringify({ error: `Unknown tool "${name}". Use search_products or check_live_price.` });
