@@ -131,6 +131,20 @@ function trimProductEnumeration(text, products) {
   return intro.length >= 20 ? intro : 'Here are the options I found - take a look below.';
 }
 
+// Asking "which is cheapest" should surface that one product, not the same three cards
+// the customer already saw. Only narrows when real prices came back - with unpriced
+// products there is nothing to rank, so every match stays visible.
+const CHEAPEST_INTENT = /cheap|sasta|lowest|least expensive|(kam|km|kum)\s*(price|prise|paise|rate)|sabse\s*kam|sb\s*(se|she)\s*km/i;
+
+function narrowToCheapest(products, userMessage) {
+  if (!CHEAPEST_INTENT.test(userMessage || '') || products.length < 2) return products;
+
+  const priced = products.filter((p) => Number(p.price) > 0);
+  if (priced.length === 0) return products;
+
+  return [priced.reduce((a, b) => (Number(a.price) <= Number(b.price) ? a : b))];
+}
+
 // Extra defense-in-depth: the model still sometimes ignores the length instruction,
 // especially when it insists on describing every product itself instead of trusting
 // the product cards. Trims to the nearest sentence boundary instead of hard-cutting
@@ -440,6 +454,9 @@ const processChat = async (messages, res) => {
       // final answer or another tool call, which the loop handles.
       result = await runCompletion(messages);
     }
+
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+    finalProducts = narrowToCheapest(finalProducts, lastUserMessage);
 
     // Clean up content
     let cleanContent = result.fullContent.trim() ? result.fullContent : lastSpokenContent;
