@@ -168,6 +168,18 @@ const tools = [
 
 const MAX_TOOL_ROUNDS = 3;
 
+// CSV descriptions are whole product-page bodies (~5k characters each). Sending three
+// of those made a single search cost ~4k tokens, and every later turn re-sent them -
+// which tripped Groq's rate limits and turned some questions into 30s failures. The
+// model only needs a gist; the cards carry the full detail for the customer.
+function clip(text, max) {
+  const value = (text || '').replace(/\s+/g, ' ').trim();
+  if (value.length <= max) return value;
+  const cut = value.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trim()}...`;
+}
+
 async function runProductSearch(query) {
   logger.info(`LLM requested product search for: "${query}"`);
   try {
@@ -183,8 +195,8 @@ async function runProductSearch(query) {
       id: local.handle,
       handle: local.handle, // named so the model knows what to pass to check_live_price
       title: local.title,
-      description: local.description,
-      activeIngredients: local.activeIngredients,
+      description: clip(local.description, 300),
+      activeIngredients: clip(local.activeIngredients, 150),
       price: 'N/A', // prices come from check_live_price so the CSV can't go stale on us
       featured_image: local.image,
       url: productUrl(local.handle),
