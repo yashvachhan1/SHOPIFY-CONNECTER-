@@ -81,6 +81,56 @@ function normalizeLiteralHtml(text) {
   return text.replace(/<br\s*\/?>/gi, '\n');
 }
 
+// The product cards already show every match with its photo and link, but the model
+// still sometimes re-lists them all in the text (live QA saw replies over 1,200
+// characters next to three cards). When the reply enumerates two or more of the
+// products that were just returned, keep the intro and drop the redundant rundown.
+// A reply that mentions only one product is a genuine "tell me about this one" answer
+// and is left completely alone.
+function trimProductEnumeration(text, products) {
+  if (!text || !Array.isArray(products) || products.length < 2) return text;
+
+  const positions = [];
+
+  // Signal 1: the reply names the products we just returned. Titles get paraphrased
+  // ("Sublingual Sleep (30 Pack)" for "Bodhi Health Sleep Sublingual, 30 Pack, ...")
+  // so a leading-words match is tried as well as the full title.
+  const haystack = text.toLowerCase();
+  for (const product of products) {
+    const title = (product.title || '').trim();
+    if (title.length < 4) continue;
+
+    const words = title.split(/\s+/);
+    const candidates = words.length > 3 ? [title, words.slice(0, 3).join(' ')] : [title];
+    for (const candidate of candidates) {
+      const at = haystack.indexOf(candidate.toLowerCase());
+      if (at > -1) {
+        positions.push(at);
+        break;
+      }
+    }
+  }
+
+  // Signal 2: the shape of a rundown - two or more lines led by a bold product name.
+  // This catches paraphrased titles that signal 1 misses.
+  let offset = 0;
+  const boldLineStarts = [];
+  for (const line of text.split('\n')) {
+    if (/^\s*\*\*[^*]+\*\*/.test(line)) boldLineStarts.push(offset);
+    offset += line.length + 1;
+  }
+  if (boldLineStarts.length >= 2) positions.push(boldLineStarts[0]);
+
+  if (positions.length < 2 && boldLineStarts.length < 2) return text;
+
+  const intro = text
+    .slice(0, Math.min(...positions))
+    .replace(/[\s*\-—:•]+$/, '')
+    .trim();
+
+  return intro.length >= 20 ? intro : 'Here are the options I found - take a look below.';
+}
+
 // Extra defense-in-depth: the model still sometimes ignores the length instruction,
 // especially when it insists on describing every product itself instead of trusting
 // the product cards. Trims to the nearest sentence boundary instead of hard-cutting
@@ -115,7 +165,9 @@ async function emitContent(res, text) {
 // of leaving the customer watching the typing dots for half a minute.
 const openai = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
-  baseURL: 'https://api.groq.com/openai/v1',
+  // Overridable so the app can be run end-to-end locally against a stub instead of
+  // burning real Groq calls; unset in production, where it stays pointed at Groq.
+  baseURL: process.env.GROQ_BASE_URL || 'https://api.groq.com/openai/v1',
   timeout: 25000,
   maxRetries: 1
 });
@@ -287,7 +339,10 @@ const processChat = async (messages, res) => {
         continue;
       }
 
-      if (!isToolCall && delta?.content) {
+      // Models often narrate ("Let me check that price for you.") in the same round as
+      // a tool call. That text used to be dropped because isToolCall was already set,
+      // which is how price questions ended up with nothing to show the customer.
+      if (delta?.content) {
         fullContent += delta.content;
       }
     }
@@ -304,8 +359,12 @@ const processChat = async (messages, res) => {
     // THEN check_live_price, and the second round's reply was being sent to the customer
     // as an empty message bubble.
     let round = 0;
+    let lastSpokenContent = '';
     while (result.isToolCall && round < MAX_TOOL_ROUNDS) {
       round += 1;
+      // Keep whatever the model said on its way to the tool call, in case it runs out
+      // of rounds without ever writing a final answer.
+      if (result.fullContent.trim()) lastSpokenContent = result.fullContent;
       const compactToolCalls = result.toolCalls.filter(Boolean); // Remove nulls
 
       // Add assistant's tool call request to history
@@ -351,12 +410,13 @@ const processChat = async (messages, res) => {
     }
 
     // Clean up content
-    let cleanContent = result.fullContent;
+    let cleanContent = result.fullContent.trim() ? result.fullContent : lastSpokenContent;
     if (cleanContent) {
       cleanContent = cleanContent.replace(/<think>[\s\S]*?<\/think>\n*/g, '').trim();
       cleanContent = normalizeLiteralHtml(cleanContent);
       cleanContent = stripMarkdownTables(cleanContent);
       cleanContent = stripHeadingsAndBullets(cleanContent);
+      cleanContent = trimProductEnumeration(cleanContent, finalProducts);
       // Brevity for the multi-product recommendation reply is handled by the prompt
       // (rule 7) so a genuine "tell me more about this one" follow-up never gets cut
       // off. This is just a generous runaway-output safety net, not a normal limit.
