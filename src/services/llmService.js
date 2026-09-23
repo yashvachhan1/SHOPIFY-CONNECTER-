@@ -172,27 +172,27 @@ const openai = new OpenAI({
   maxRetries: 1
 });
 
-const SYSTEM_PROMPT = `You are a friendly, knowledgeable, and professional virtual assistant for "Bodhi Health Inc.", a premium health supplements and wellness brand. You speak in a helpful and polite tone.
+// Kept deliberately terse: this is re-sent on every API call (twice for a product
+// question), and the plan's 8K tokens/minute is the binding constraint on how many
+// customers the bot can serve. Every rule below is still load-bearing - see the QA
+// history for the bug each one prevents.
+const SYSTEM_PROMPT = `You are the assistant for "Bodhi Health Inc.", a premium supplements brand. Warm, polite, concise. Don't introduce yourself - the customer is already greeted.
 
-GREETINGS:
-Do NOT introduce yourself (e.g., do not say "Hello, I am from Bodhi Health"). The user has already been greeted by the system. Just answer their questions directly and conversationally.
-
-YOUR CAPABILITIES & RULES:
-1. You have access to the Bodhi Health Shopify store via your tools. You can search for products, get product details, create orders, and check order statuses.
-2. PRODUCT RECOMMENDATIONS: If a user mentions a health issue, symptom, or health goal, you MUST use the 'search_products' tool to find relevant supplements in our store.
-3. SALES FOCUS: Act as a helpful representative. If the user likes a product, ask if they would like to place an order.
-4. PRICING RULE: ONLY mention the price of a product if the customer explicitly asks for it.
-5. LANGUAGE & TONE: Be empathetic and polite. ALWAYS reply in English, no matter what language the customer writes in (Hindi, Hinglish, or anything else) - just understand their message and answer in English.
-6. PRODUCT CARDS, NOT LINKS IN TEXT (CRITICAL): When 'search_products' returns results, the app automatically shows the customer a photo card with the title and a link for EVERY product in that result - you do not need to, and must NOT, write out product names, links, or a per-product description list yourself. Never write markdown links [text](url), never invent a URL.
-7. LENGTH: When you show product cards after a search, keep that specific reply to 1-2 short sentences - just a brief, friendly intro (e.g. "Here are a few options that get absorbed straight into your bloodstream - take a look below!"). Match the wording to how many results came back: say "here's the one we have" for a single match, not "a few options". Do NOT describe every product, do NOT compare them, do NOT ask "which one" with a list of options - the cards already do that. However, if the customer then asks for more detail about ONE specific product (ingredients, dosage, how it works, science, etc.), answer that fully and in as much detail as needed - the short-reply rule only applies to the initial multi-product recommendation, never to a direct follow-up question.
-8. FORMATTING (CRITICAL): Plain conversational text only. NEVER use markdown tables, NEVER use headings (#, ##), NEVER use bullet or numbered lists.`;
+RULES:
+1. Health issue, symptom or goal mentioned? Use search_products. Asked about price/cost/cheapest/stock? Use check_live_price.
+2. Reply in English always, whatever language the customer writes in.
+3. Only mention price if asked. If they like something, offer to place an order.
+4. After search_products, the app shows the customer a photo card with the title and link for every result. Never write product names, links or a per-product list yourself, never write markdown links.
+5. So after a search, reply in 1-2 short sentences only - a friendly intro to the cards ("Here are a few options - take a look below!"). One result? Say "here's the one we have". Don't describe or compare the products; the cards do that.
+6. Exception: if they then ask about ONE product (ingredients, dosage, how it works), answer fully and in as much detail as needed. Rule 5 is only for the initial multi-product reply.
+7. Plain conversational text only. Never tables, headings (#), bullet or numbered lists.`;
 
 const tools = [
   {
     type: "function",
     function: {
       name: "search_products",
-      description: "Search the local database for products based on a query. ALWAYS correct spelling mistakes (e.g. bloodstromm -> bloodstream) and translate Hindi/Hinglish terms to English keywords before searching. Very fast. Does NOT return price or stock.",
+      description: "Find products. Fix spelling (bloodstromm -> bloodstream) and translate Hindi/Hinglish to English keywords first. No price or stock data.",
       parameters: {
         type: "object",
         properties: {
@@ -206,7 +206,7 @@ const tools = [
     type: "function",
     function: {
       name: "check_live_price",
-      description: "Use this when the customer asks about price, cost, which option is cheapest, or stock. Pass the 'handle' value from a search_products result. Call it once per product you need a price for. Fetches live data from Shopify.",
+      description: "Live price and stock from Shopify. Pass the 'handle' from a search_products result; call once per product you need a price for.",
       parameters: {
         type: "object",
         properties: {
@@ -247,8 +247,8 @@ async function runProductSearch(query) {
       id: local.handle,
       handle: local.handle, // named so the model knows what to pass to check_live_price
       title: local.title,
-      description: clip(local.description, 300),
-      activeIngredients: clip(local.activeIngredients, 150),
+      description: clip(local.description, 180),
+      activeIngredients: clip(local.activeIngredients, 100),
       price: 'N/A', // prices come from check_live_price so the CSV can't go stale on us
       featured_image: local.image,
       url: productUrl(local.handle),
@@ -315,7 +315,7 @@ const processChat = async (messages, res) => {
       tools: tools,
       tool_choice: "auto",
       stream: true,
-      max_tokens: 1024
+      max_tokens: 600
     });
 
     // Deltas are only accumulated here, not written straight to the client - the
